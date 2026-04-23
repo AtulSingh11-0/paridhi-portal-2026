@@ -1,0 +1,46 @@
+services:
+    mysql:
+        image: mysql:8.0
+        container_name: paridhi-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+            MYSQL_DATABASE: paridhi-portal-2026
+        ports:
+            # HOST:CONTAINER (Maps your laptop's 3307 to the container's internal 3306)
+            - "3307:3306"
+        volumes:
+            - mysql-data:/var/lib/mysql
+        networks:
+            - paridhi-network
+        # Prevents Spring Boot from crashing by telling Docker when the DB is actually ready
+        healthcheck:
+            test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    app:
+        image: ${DOCKER_USERNAME}/paridhi-portal-2026:latest
+        container_name: paridhi-portal
+        restart: unless-stopped
+        depends_on:
+            mysql:
+                condition: service_healthy
+        ports:
+            - "8080:8080"
+        env_file:
+            - .env.docker
+        networks:
+            - paridhi-network
+        deploy:
+            resources:
+                limits:
+                    memory: 1G
+
+networks:
+    paridhi-network:
+        driver: bridge
+
+volumes:
+    mysql-data:
