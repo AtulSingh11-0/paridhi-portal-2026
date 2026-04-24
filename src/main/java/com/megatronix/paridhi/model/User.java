@@ -71,6 +71,10 @@ public class User extends Auditable implements UserDetails {
 	@Builder.Default
 	private transient List< MRD > mrdRegistrations = new ArrayList<>();
 
+	@Column( name = "is_logged_in", nullable = false )
+	@Builder.Default
+	private boolean isLoggedIn = false;
+
 	@Column ( name = "is_verified", nullable = false )
 	@Builder.Default
 	private boolean isVerified = false;
