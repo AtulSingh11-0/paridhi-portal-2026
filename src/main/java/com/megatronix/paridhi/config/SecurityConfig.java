@@ -1,5 +1,7 @@
 package com.megatronix.paridhi.config;
 
+import com.megatronix.paridhi.filter.EndpointVisibilityFilter;
+import com.megatronix.paridhi.filter.RateLimitingFilter;
 import com.megatronix.paridhi.security.JwtAuthenticationEntryPoint;
 import com.megatronix.paridhi.security.JwtAuthenticationFilter;
 import com.megatronix.paridhi.service.UserDetailsServiceImpl;
@@ -24,18 +26,24 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+	private final RateLimitingFilter rateLimitingFilter;
 	private final JwtAuthenticationFilter jwtAuthFilter;
 	private final UserDetailsServiceImpl userDetailsService;
 	private final JwtAuthenticationEntryPoint jwtAuthEntryPoint;
+	private final EndpointVisibilityFilter endpointVisibilityFilter;
 
 	public SecurityConfig (
+		RateLimitingFilter rateLimitingFilter,
 		JwtAuthenticationFilter jwtAuthFilter,
 		UserDetailsServiceImpl userDetailsService,
-		JwtAuthenticationEntryPoint jwtAuthEntryPoint
+		JwtAuthenticationEntryPoint jwtAuthEntryPoint,
+		EndpointVisibilityFilter endpointVisibilityFilter
 	) {
 		this.jwtAuthFilter = jwtAuthFilter;
-		this.userDetailsService = userDetailsService;
 		this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+		this.rateLimitingFilter = rateLimitingFilter;
+		this.userDetailsService = userDetailsService;
+		this.endpointVisibilityFilter = endpointVisibilityFilter;
 	}
 
 	private static final String[] WHITELISTED_URLS = {
@@ -99,7 +107,9 @@ public class SecurityConfig {
 				.sessionCreationPolicy(STATELESS)
 			)
 			.authenticationProvider(authenticationProvider())
-			.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)
+			.addFilterBefore(endpointVisibilityFilter, RateLimitingFilter.class);
 
 		return http.build();
 	}

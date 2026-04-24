@@ -7,7 +7,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ImageKitConfig {
-
 	@Value ( "${imagekit.public-key}" )
 	private String publicKey;
 
