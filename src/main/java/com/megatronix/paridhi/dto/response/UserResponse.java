@@ -36,6 +36,8 @@ public record UserResponse(
 	boolean isVerified,
 	@Schema(description = "Indicates whether the user has completed their profile setup", example = "true")
 	boolean isProfileCreated,
+	@Schema(description = "Indicates whether the user is currently logged in", example = "true")
+	boolean isLoggedIn,
 	@Schema(description = "Timestamp of the user's last login")
 	Instant lastLogin
 ) {
@@ -53,6 +55,7 @@ public record UserResponse(
 			user.getGids(),
 			user.isVerified(),
 			user.isProfileCreated(),
+			user.isLoggedIn(),
 			user.getLastLogin()
 		);
 	}

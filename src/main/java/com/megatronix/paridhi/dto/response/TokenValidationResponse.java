@@ -17,10 +17,11 @@ public record TokenValidationResponse(
 	@Schema(description = "Authenticated user details if the token is valid")
 	UserResponse user
 ) {
-	public static TokenValidationResponse valid () {
+	public static TokenValidationResponse valid (UserResponse user) {
 		return TokenValidationResponse.builder()
 			.isValid(true)
 			.message("Token is valid")
+			.user(user)
 			.build();
 	}
 
