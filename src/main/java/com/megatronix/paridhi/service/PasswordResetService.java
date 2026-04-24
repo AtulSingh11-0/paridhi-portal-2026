@@ -128,7 +128,7 @@ public class PasswordResetService {
 			.map(resetToken -> ! resetToken.isExpired() && ! resetToken.isUsed() && ! resetToken.isLocked())
 			.orElse(false);
 
-		return isValid ? TokenValidationResponse.valid() : TokenValidationResponse.invalid("Invalid or expired token");
+		return isValid ? TokenValidationResponse.valid(null) : TokenValidationResponse.invalid("Invalid or expired token");
 	}
 
 	/*
@@ -141,7 +141,7 @@ public class PasswordResetService {
 			.toList();
 
 		if ( ! activeTokens.isEmpty() ) {
-			PasswordResetToken latestToken = activeTokens.get(activeTokens.size() - 1);
+			PasswordResetToken latestToken = activeTokens.getLast();
 
 			TokenSecurityUtil.validateCooldown(latestToken.getCreatedAt(), OTP_COOLDOWN_SECONDS);
 

@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.dto.request.AdminCreationRequest;
 import com.megatronix.paridhi.dto.request.LoginRequest;
 import com.megatronix.paridhi.dto.request.RegisterRequest;
@@ -7,7 +8,6 @@ import com.megatronix.paridhi.dto.response.AuthResponse;
 import com.megatronix.paridhi.dto.response.TokenValidationResponse;
 import com.megatronix.paridhi.dto.response.UserResponse;
 import com.megatronix.paridhi.exception.UserAlreadyExistsException;
-import com.megatronix.paridhi.exception.UserNotFoundException;
 import com.megatronix.paridhi.model.BlacklistedToken;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.BlacklistedTokenRepository;
@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,30 +26,30 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-import static com.megatronix.paridhi.constant.AppConstant.USER;
-import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.ALREADY_EXISTS;
-import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.EMAIL_NOT_FOUND;
-import static com.megatronix.paridhi.constant.MessageConstant.Operation.CREATE;
-import static com.megatronix.paridhi.constant.MessageConstant.Operation.READ;
+import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
+import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.EXPIRED_BLACKLISTED_TOKENS_PURGED;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
+import static com.megatronix.paridhi.constant.MessageConstant.SuccessTemplate.CREATED;
+import static com.megatronix.paridhi.constant.MessageConstant.SuccessTemplate.USER_AUTHENTICATED_SUCCESSFULLY;
+import static com.megatronix.paridhi.constant.MessageConstant.ToastMessage.LOGIN_SUCCESSFUL;
+import static com.megatronix.paridhi.constant.MessageConstant.ToastMessage.REGISTRATION_SUCCESSFUL;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.*;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.JWT_TOKEN_EXPIRED;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.JWT_TOKEN_VALIDATION_FAILED;
 import static com.megatronix.paridhi.constant.Role.ROLE_ADMIN;
+import static java.lang.String.format;
 
 @Service
 public class UserService {
 	private static final Logger log = LoggerFactory.getLogger(UserService.class);
-
 	private final JwtService jwtService;
 	private final UserRepository userRepository;
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final AuthenticationManager authenticationManager;
 	private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-	public UserService (
-		JwtService jwtService,
-		UserRepository userRepository,
-		BCryptPasswordEncoder passwordEncoder,
-		AuthenticationManager authenticationManager,
-		BlacklistedTokenRepository blacklistedTokenRepository
-	) {
+	public UserService ( JwtService jwtService, UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, BlacklistedTokenRepository blacklistedTokenRepository ) {
 		this.jwtService = jwtService;
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
@@ -58,138 +59,153 @@ public class UserService {
 
 	@Transactional
 	public AuthResponse register ( RegisterRequest request ) {
-		log.info("Register request for email: {}", request.email());
-
-		if ( userRepository.existsByEmail(request.email()) ) {
-			LoggingUtil.logError(log, READ, USER, null, String.format(ALREADY_EXISTS, USER, "email", request.email()), null);
-			throw new UserAlreadyExistsException("User already exists");
+		if ( log.isDebugEnabled() ) {
+			log.debug("Processing registration request for email: {}", request.email());
 		}
 
-		// We don't specify the role here, so it automatically defaults to ROLE_USER!
-		User user = User.builder()
-			.name(request.name())
-			.email(request.email())
-			.password(passwordEncoder.encode(request.password()))
-			.build();
+		// step-1: check if USER already exists with the EMAIL
+		if ( userRepository.existsByEmail(request.email()) ) {
+			LoggingUtil.logSecurity(log, USER_REGISTER, null, FAILED, format("Registration rejected - " + ALREADY_EXISTS, USER, MAIL, request.email()));
+			throw new UserAlreadyExistsException();
+		}
+
+		// step-2: create the USER and save it in the DB
+		User user = User.builder().name(request.name()).email(request.email()).password(passwordEncoder.encode(request.password())).isLoggedIn(true).build();
 
 		User savedUser = userRepository.save(user);
-		log.info("Registered user successfully: {}", savedUser.getEmail());
+		if ( log.isDebugEnabled() ) {
+			log.debug("User entity saved to database with ID: {}", savedUser.getUserId());
+		}
+		LoggingUtil.logSecurity(log, USER_REGISTER, savedUser, SUCCESS, format(CREATED, USER, savedUser.getUserId()));
 
-		// User model implements UserDetails, so we pass it directly
+		// step-3: generate the JWT token for the saved USER
 		var jwtToken = jwtService.generateToken(savedUser);
 
-		// Using your @Builder on the AuthResponse Record
-		return AuthResponse.builder()
-			.token(jwtToken)
-			.user(UserResponse.fromUser(savedUser))
-			.build();
+		return AuthResponse.builder().token(jwtToken)
+//			.user(UserResponse.fromUser(savedUser))
+			.message(REGISTRATION_SUCCESSFUL).build();
 	}
 
 	@Transactional
 	public AuthResponse login ( LoginRequest request ) {
-		log.info("Login attempt for email: {}", request.email());
+		if ( log.isDebugEnabled() ) {
+			log.debug("Attempting authentication for email: {}", request.email());
+		}
 
-		authenticationManager.authenticate(
-			new UsernamePasswordAuthenticationToken(request.email(), request.password())
-		);
+		// step-1: authenticate the USER using AuthenticationManager
+		authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
-		User user = userRepository.findUserByEmail(request.email())
-			.orElseThrow(() -> {
-				LoggingUtil.logError(log, READ, USER, null, String.format(EMAIL_NOT_FOUND, request.email()), null);
-				return new UserNotFoundException("User not found");
-			});
+		// step-2: fetch the USER from the DB
+		User user = fetchUserByEmail(request.email());
 
+		// step-3: update last login time and loggedIn status and generate the JWT token for the USER
+		user.setLoggedIn(true);
 		user.setLastLogin(Instant.now());
 
+		// step-4: generate the JWT token for the saved USER
 		var jwtToken = jwtService.generateToken(user);
-		log.info("User logged in successfully: {}", user.getEmail());
+		LoggingUtil.logSecurity(log, USER_LOGIN, user, SUCCESS, format(USER_AUTHENTICATED_SUCCESSFULLY, user.getEmail()));
 
-		return AuthResponse.builder()
-			.token(jwtToken)
-			.user(UserResponse.fromUser(user))
-			.build();
+		return AuthResponse.builder().token(jwtToken)
+//			.user(UserResponse.fromUser(user))
+			.message(LOGIN_SUCCESSFUL).build();
 	}
 
 	@Transactional
 	public AuthResponse createAdmin ( AdminCreationRequest request ) {
-		log.info("Admin creation request for email: {}", request.email());
-
-		if ( userRepository.existsByEmail(request.email()) ) {
-			LoggingUtil.logError(log, CREATE, USER, null, String.format(ALREADY_EXISTS, "Admin user",
-				"email", request.email()), null);
-			throw new UserAlreadyExistsException("User already exists");
+		if ( log.isDebugEnabled() ) {
+			log.debug("Processing admin creation request for email: {}", request.email());
 		}
 
-		// Explicitly override the default to make them an ADMIN
-		User user = User.builder()
-			.name(request.name())
-			.email(request.email())
-			.password(passwordEncoder.encode(request.password()))
-			.role(ROLE_ADMIN)
-			.build();
+		// step-1: check if ADMIN already exists with the EMAIL
+		if ( userRepository.existsByEmail(request.email()) ) {
+			LoggingUtil.logSecurity(log, ADMIN_CREATE, null, FAILED, format(ADMIN + " Creation rejected - " + ALREADY_EXISTS, ADMIN, MAIL, request.email()));
+			throw new UserAlreadyExistsException();
+		}
+
+		// step-2: create the USER with role: ADMIN and save it in the DB
+		User user = User.builder().name(request.name()).email(request.email()).password(passwordEncoder.encode(request.password())).role(ROLE_ADMIN).build();
 
 		User savedUser = userRepository.save(user);
-		log.info("Admin created successfully: {}", savedUser.getEmail());
+		LoggingUtil.logSecurity(log, ADMIN_CREATE, savedUser, SUCCESS, format(CREATED, ADMIN, savedUser.getUserId()));
 
+		// step-3: generate the JWT token for the saved USER
 		var jwtToken = jwtService.generateToken(savedUser);
 
-		return AuthResponse.builder()
-			.token(jwtToken)
-			.user(UserResponse.fromUser(savedUser))
-			.build();
+		return AuthResponse.builder().token(jwtToken)
+//			.user(UserResponse.fromUser(savedUser))
+			.message(REGISTRATION_SUCCESSFUL).build();
 	}
 
 	@Transactional
-	public void logout ( String token ) {
-		String jwt = token.startsWith("Bearer ") ? token.substring(7) : token;
-		Instant expiresAt = jwtService.getExpirationDateFromToken(jwt);
+	public void logout ( String authHeader ) {
+		// step-1: validate the auth header and extract the token
+		String token = authHeader.startsWith(BEARER) ? authHeader.substring(7) : authHeader;
 
-		var blacklistedToken = BlacklistedToken.builder()
-			.token(jwt)
-			.expiresAt(expiresAt)
-			.build();
+		// step-2: extract the username from the token
+		String username = jwtService.extractUsername(token);
+
+		// step-3: fetch the USER from the DB and set loggedIn status to false
+		User user = fetchUserByEmail(username);
+		user.setLoggedIn(false);
+
+		// step-4: blacklist the token by saving it in the blacklisted tokens repository
+		var blacklistedToken = BlacklistedToken.builder().token(token).expiresAt(jwtService.getExpirationDateFromToken(token)).build();
 
 		blacklistedTokenRepository.save(blacklistedToken);
-		log.info("Token blacklisted successfully");
+		LoggingUtil.logSecurity(log, USER_LOGOUT, user, SUCCESS, JWT_TOKEN_BLACKLISTED);
 	}
 
 	@Transactional ( readOnly = true )
 	public TokenValidationResponse validateCurrentToken ( String authHeader ) {
-		if ( authHeader == null || ! authHeader.startsWith("Bearer ") ) {
-			return new TokenValidationResponse(false, "Invalid authorization header", null);
+		// step-1: validate the auth header and extract the token
+		if ( authHeader == null || ! authHeader.startsWith(BEARER) ) {
+			return TokenValidationResponse.invalid(INVALID_AUTH_HEADER);
 		}
-
 		String token = authHeader.substring(7);
 
 		try {
+			// step-2: check if the token is blacklisted
 			if ( jwtService.isTokenBlacklisted(token) ) {
-				return new TokenValidationResponse(false, "Token has been revoked", null);
+				return TokenValidationResponse.invalid(JWT_TOKEN_REVOKED);
 			}
 
+			// step-3: extract the username from the token and validate the token
 			String username = jwtService.extractUsername(token);
 			if ( username == null || jwtService.isTokenExpired(token) ) {
-				return new TokenValidationResponse(false, "Token is invalid or expired", null);
+				return TokenValidationResponse.invalid(JWT_TOKEN_EXPIRED);
 			}
 
-			User user = userRepository.findUserByEmail(username)
-				.orElseThrow(() -> new UserNotFoundException("User not found"));
-
+			// step-4: fetch the USER from the DB and validate the token against the USER details
+			User user = fetchUserByEmail(username);
 			if ( jwtService.isTokenValid(token, user) ) {
-				return new TokenValidationResponse(true, "Token is valid", UserResponse.fromUser(user));
+				return TokenValidationResponse.valid(UserResponse.fromUser(user));
 			}
 
-			return new TokenValidationResponse(false, "Token is invalid", null);
-
+			// if token is not valid for any reason, return invalid response
+			return TokenValidationResponse.invalid(JWT_TOKEN_INVALID);
 		} catch ( Exception e ) {
-			log.error("Token validation error: {}", e.getMessage());
-			return new TokenValidationResponse(false, "Error validating token", null);
+			LoggingUtil.logError(log, TOKEN_VALIDATION, USER, null, MessageConstant.ErrorTemplate.JWT_TOKEN_VALIDATION_FAILED, e);
+			return TokenValidationResponse.invalid(JWT_TOKEN_VALIDATION_FAILED);
 		}
 	}
 
 	@Transactional
 	@Scheduled ( cron = "0 0 0 * * ?" )
 	public void cleanUpExpiredTokens () {
-		log.info("Cleaning up expired Blacklisted tokens");
+		if ( log.isInfoEnabled() ) {
+			log.info("Initiating scheduled cleanup of expired blacklisted tokens");
+		}
+		// delete all blacklisted tokens that have expired
 		blacklistedTokenRepository.deleteAllExpiredTokens(Instant.now());
+		LoggingUtil.logOperation(log, TOKEN_CLEANUP, BLACKLISTED_TOKEN, null, EXPIRED_BLACKLISTED_TOKENS_PURGED);
+	}
+
+	private User fetchUserByEmail ( String email ) {
+		// fetch the USER from the DB using the email, if not found throw an exception
+		return userRepository.findUserByEmail(email).orElseThrow(() -> {
+			LoggingUtil.logSecurity(log, USER_LOGIN, null, FAILED, format(NOT_FOUND_LOG, USER, MAIL, email));
+			return new BadCredentialsException(INVALID_CREDENTIALS);
+		});
 	}
 }
