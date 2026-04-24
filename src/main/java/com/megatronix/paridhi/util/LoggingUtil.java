@@ -9,7 +9,6 @@ import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.model.User;
 
 public class LoggingUtil {
-
 	private LoggingUtil() {}
 
 	/**
