@@ -54,6 +54,9 @@ public class AppConstant {
 	public static final String MRD = "MRD";
 	public static final String USER = "User";
 	public static final String TEAM = "Team";
+	public static final String ADMIN = "Admin";
+	public static final String BLACKLISTED_TOKEN = "BLACKLISTED_TOKEN";
+	public static final String MAIL = "MAIL";
 	public static final String EVENT = "Event";
 	public static final String COMBO = "Combo";
 	public static final String OTP = "OtpToken";
@@ -61,7 +64,7 @@ public class AppConstant {
 	public static final String CONTACT_QUERY = "ContactQuery";
 	public static final String MEGATRONIX_TEAM = "MegatronixTeam";
 	public static final String PASSWORD_RESET_TOKEN = "PasswordResetToken";
-	
+
 	/**
 	 * Resource types for media and images
 	 */
@@ -81,13 +84,13 @@ public class AppConstant {
 	 */
 	public static final String PUBLIC_ID = "public_id";
 	public static final String SECURE_URL = "secure_url";
-	public static final String CLOUDINARY_RESOURCE_TYPE = "resource_type"; 
+	public static final String CLOUDINARY_RESOURCE_TYPE = "resource_type";
 	public static final String IMAGE = "image";
 	public static final String FOLDER_KEY = "folder";
 	public static final String OVERWRITE_KEY = "overwrite";
 	public static final String INVALIDATE_KEY = "invalidate";
 	public static final long MAX_IMAGE_SIZE = 10L * 1024 * 1024; // 10 MB
-	
+
 	/**
 	 * Request and logging attribute names
 	 */
@@ -103,7 +106,7 @@ public class AppConstant {
 	public static final String DETAILS = "details";
 	public static final String ERROR = "error";
 	public static final String CONTEXT = "context";
-	
+
 	/**
 	 * Special values and placeholders
 	 */
@@ -114,7 +117,7 @@ public class AppConstant {
 	public static final String DEFAULT_EVENT_POSTER_FILE_ID = "69e0d63e5c7cd75eb89d8476";
 	public static final String DEFAULT_PROFILE_PIC = "https://cdn-icons-png.flaticon.com/512/5951/5951752.png";
 	public static final String FOR_DOMAIN = " for domain: ";
-	
+
 	/**
 	 * Status indicators and codes
 	 */
@@ -124,10 +127,11 @@ public class AppConstant {
 	public static final String CLOSED = "CLOSED";
 	public static final String RESOLVED = "RESOLVED";
 	public static final String UNRESOLVED = "UNRESOLVED";
-	
+
 	/**
 	 * Security related constants
 	 */
+	public static final String BEARER = "Bearer ";
 	public static final String ACCESS_DENIED = "access_denied";
 	public static final String ACCESS_GRANTED = "access_granted";
 	public static final String AUTHENTICATION_SUCCESS = "authentication_success";
@@ -135,20 +139,20 @@ public class AppConstant {
 	public static final String LOGOUT_SUCCESS = "logout_success";
 	public static final String TOKEN_EXPIRED = "token_expired";
 	public static final String TOKEN_INVALID = "token_invalid";
-	
+
 	/**
 	 * UI/Email style constants
 	 */
-	public static final String PRIMARY_COLOR = "#1562D4";        // Blue
-	public static final String SECONDARY_COLOR = "#64C882";      // Green
-	public static final String BACKGROUND_COLOR = "#222222";     // Dark gray
-	public static final String TEXT_COLOR = "#CCCCCC";           // Light gray
-	public static final String H3_TEXT_COLOR = "#66c2ff";				 // Light blue
-	public static final String BORDER_BOTTOM_COLOR = "#0040ff";  // Blue
-	public static final String H_COLOR = "#FFFFFF";           	 // White
-	public static final String HEADER_BACKGROUND = "#1A1A1A";    // Even darker gray
-	public static final String FOOTER_COLOR = "#777777";         // Medium gray
-	public static final String FIRST_PLACE_COLOR = "#FFD700";    // Gold
-	public static final String SECOND_PLACE_COLOR = "#C0C0C0";   // Silver
-	public static final String THIRD_PLACE_COLOR = "#CD7F32";    // Bronze
+	public static final String PRIMARY_COLOR = "#1562D4"; // Blue
+	public static final String SECONDARY_COLOR = "#64C882"; // Green
+	public static final String BACKGROUND_COLOR = "#222222"; // Dark gray
+	public static final String TEXT_COLOR = "#CCCCCC"; // Light gray
+	public static final String H3_TEXT_COLOR = "#66c2ff"; // Light blue
+	public static final String BORDER_BOTTOM_COLOR = "#0040ff"; // Blue
+	public static final String H_COLOR = "#FFFFFF"; // White
+	public static final String HEADER_BACKGROUND = "#1A1A1A"; // Even darker gray
+	public static final String FOOTER_COLOR = "#777777"; // Medium gray
+	public static final String FIRST_PLACE_COLOR = "#FFD700"; // Gold
+	public static final String SECOND_PLACE_COLOR = "#C0C0C0"; // Silver
+	public static final String THIRD_PLACE_COLOR = "#CD7F32"; // Bronze
 }
