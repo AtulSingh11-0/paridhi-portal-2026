@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.security;
 
+import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.BlacklistedTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -9,13 +10,14 @@ import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -43,18 +45,28 @@ public class JwtService {
 		return claimsResolver.apply(claims);
 	}
 
-	public String generateToken ( UserDetails userDetails ) {
-		return generateToken(new HashMap<>(), userDetails);
+	public String generateToken ( User user ) {
+		List<String> roles = user.getAuthorities().stream()
+			.map(GrantedAuthority::getAuthority)
+			.toList();
+
+		Map< String, Object > claims = Map.of(
+			"userId", user.getUserId(),
+			"name", user.getName(),
+			"isProfileCreated", user.isProfileCreated(),
+			"isVerified", user.isVerified(),
+			"isLoggedIn", user.isLoggedIn(),
+			"roles", roles
+		);
+		return generateToken(claims, user);
 	}
 
 	public String generateToken ( Map< String, Object > extraClaims, UserDetails userDetails ) {
 		Instant now = Instant.now();
-
 		return Jwts
 			.builder()
 			.claims(extraClaims)
 			.subject(userDetails.getUsername())
-			// FIX: Bridged legacy Date to our highly accurate Instant architecture
 			.issuedAt(Date.from(now))
 			.expiration(Date.from(now.plusMillis(expirationTime)))
 			.signWith(getSigninKey())
