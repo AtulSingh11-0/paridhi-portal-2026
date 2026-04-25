@@ -59,7 +59,8 @@ public class AppConstant {
 	public static final String MAIL = "MAIL";
 	public static final String EVENT = "Event";
 	public static final String COMBO = "Combo";
-	public static final String OTP = "OtpToken";
+	public static final String OTP = "Otp Token";
+	public static final String PASSWORD_RESET = "Password Reset Token";
 	public static final String PROFILE = "Profile";
 	public static final String CONTACT_QUERY = "ContactQuery";
 	public static final String MEGATRONIX_TEAM = "MegatronixTeam";
