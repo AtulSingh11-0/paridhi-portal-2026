@@ -20,14 +20,28 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.Set;
 
 @Slf4j
-@Order(5)
+@Order ( 5 )
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+	/************************************************************** TOO MANY REQUESTS
+	 *  **************************************************************/
+
+	@ExceptionHandler ( TooManyRequestsException.class )
+	public ResponseEntity< ErrorResponse > handleTooManyRequestsException (
+		TooManyRequestsException ex,
+		HttpServletRequest request
+	) {
+		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.TOO_MANY_REQUESTS.value(), ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(), request.getRequestURI());
+
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+	}
+
 
 	/************************************************************** CATCH-ALL / SERVER ERROR **************************************************************/
 
 	@ExceptionHandler ( Exception.class )
-	public ResponseEntity<ErrorResponse> handleAllUncaughtException (
+	public ResponseEntity< ErrorResponse > handleAllUncaughtException (
 		Exception exception,
 		HttpServletRequest httpRequest
 	) {
@@ -38,7 +52,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@ExceptionHandler ( MailSendingException.class )
-	public ResponseEntity<ErrorResponse> handleMailSendingException (
+	public ResponseEntity< ErrorResponse > handleMailSendingException (
 		MailSendingException exception,
 		HttpServletRequest request
 	) {
@@ -50,7 +64,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	/************************************************************** VALIDATION EXCEPTION's **************************************************************/
 
 	@ExceptionHandler ( ConstraintViolationException.class )
-	public ResponseEntity<ErrorResponse> handleConstraintViolationException (
+	public ResponseEntity< ErrorResponse > handleConstraintViolationException (
 		ConstraintViolationException ex,
 		HttpServletRequest request
 	) {
@@ -67,7 +81,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@ExceptionHandler ( MethodArgumentTypeMismatchException.class )
-	public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException (
+	public ResponseEntity< ErrorResponse > handleMethodArgumentTypeMismatchException (
 		MethodArgumentTypeMismatchException exception,
 		HttpServletRequest request
 	) {
@@ -86,7 +100,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	/************************************************************** SPRING MVC OVERRIDES **************************************************************/
 
 	@Override
-	protected ResponseEntity<Object> handleMethodArgumentNotValid (
+	protected ResponseEntity< Object > handleMethodArgumentNotValid (
 		@NonNull MethodArgumentNotValidException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status, @NonNull WebRequest request
@@ -104,7 +118,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@Override
-	protected ResponseEntity<Object> handleHttpMessageNotReadable (
+	protected ResponseEntity< Object > handleHttpMessageNotReadable (
 		@NonNull org.springframework.http.converter.HttpMessageNotReadableException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status,
@@ -116,7 +130,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@Override
-	protected ResponseEntity<Object> handleMissingServletRequestParameter (
+	protected ResponseEntity< Object > handleMissingServletRequestParameter (
 		@NonNull MissingServletRequestParameterException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status,
@@ -128,7 +142,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@Override
-	protected ResponseEntity<Object> handleMaxUploadSizeExceededException (
+	protected ResponseEntity< Object > handleMaxUploadSizeExceededException (
 		@NonNull MaxUploadSizeExceededException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status,
@@ -140,7 +154,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@Override
-	protected ResponseEntity<Object> handleHttpRequestMethodNotSupported (
+	protected ResponseEntity< Object > handleHttpRequestMethodNotSupported (
 		@NonNull org.springframework.web.HttpRequestMethodNotSupportedException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status,
@@ -149,7 +163,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		StringBuilder builder = new StringBuilder();
 		builder.append(ex.getMethod());
 		builder.append(" method is not supported for this request. Supported methods are ");
-		Set<HttpMethod> supportedMethods = ex.getSupportedHttpMethods();
+		Set< HttpMethod > supportedMethods = ex.getSupportedHttpMethods();
 		if ( supportedMethods != null && ! supportedMethods.isEmpty() ) {
 			supportedMethods.forEach(method -> builder.append(method).append(" "));
 		} else {
@@ -162,7 +176,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@Override
-	protected ResponseEntity<Object> handleHttpMediaTypeNotSupported (
+	protected ResponseEntity< Object > handleHttpMediaTypeNotSupported (
 		@NonNull org.springframework.web.HttpMediaTypeNotSupportedException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status,
@@ -179,7 +193,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	@Override
-	protected ResponseEntity<Object> handleNoHandlerFoundException (
+	protected ResponseEntity< Object > handleNoHandlerFoundException (
 		@NonNull NoHandlerFoundException ex,
 		@NonNull HttpHeaders headers,
 		@NonNull HttpStatusCode status,
