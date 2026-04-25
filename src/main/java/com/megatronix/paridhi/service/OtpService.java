@@ -1,6 +1,5 @@
 package com.megatronix.paridhi.service;
 
-import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.dto.request.OtpRequest;
 import com.megatronix.paridhi.dto.request.OtpVerificationRequest;
@@ -9,7 +8,6 @@ import com.megatronix.paridhi.dto.response.OtpVerificationResponse;
 import com.megatronix.paridhi.exception.InvalidOtpException;
 import com.megatronix.paridhi.exception.OtpExpiredException;
 import com.megatronix.paridhi.exception.UserAlreadyVerifiedException;
-import com.megatronix.paridhi.exception.UserNotFoundException;
 import com.megatronix.paridhi.model.OtpToken;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.OtpTokenRepository;
@@ -24,19 +22,30 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+
+import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
+import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.INVALID_EMAIL;
+import static java.lang.String.format;
 
 @Service
 public class OtpService {
+
 	private static final Logger log = LoggerFactory.getLogger(OtpService.class);
-	private static final String USER_NOT_FOUND_WITH_EMAIL = "User not found with email: ";
-	private static final String OTP_SERVICE = "OtpService";
 	private static final int OTP_COOLDOWN_SECONDS = 60;
 
 	private final EmailService emailService;
 	private final UserRepository userRepository;
 	private final OtpTokenRepository otpTokenRepository;
 
-	public OtpService ( EmailService emailService, UserRepository userRepository, OtpTokenRepository otpTokenRepository ) {
+	public OtpService (
+		EmailService emailService,
+		UserRepository userRepository,
+		OtpTokenRepository otpTokenRepository
+	) {
 		this.emailService = emailService;
 		this.userRepository = userRepository;
 		this.otpTokenRepository = otpTokenRepository;
@@ -52,89 +61,132 @@ public class OtpService {
 		String email = request.email();
 		String otp = request.otp();
 
-		LoggingUtil.logOperation(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, "Verifying OTP for user: " + email);
-
-		User user = userRepository.findUserByEmail(email)
-			.orElseThrow(() -> {
-				LoggingUtil.logError(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, USER_NOT_FOUND_WITH_EMAIL + email, null);
-				return new UserNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.USER));
-			});
-
-		if ( user.isVerified() ) {
-			LoggingUtil.logError(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, "User is already verified: " + email, null);
-			throw new UserAlreadyVerifiedException("User is already verified");
+		if ( log.isDebugEnabled() ) {
+			log.debug("Processing OTP verification request for email: {}", email);
 		}
 
+		// step-1: fetch the USER from the DB by email
+		Optional< User > userOpt = userRepository.findUserByEmail(email);
+
+		// step-2: guard - reject if no USER found with the provided email
+		if ( userOpt.isEmpty() ) {
+			LoggingUtil.logError(log, OTP_VERIFY, OTP_SERVICE, null, format(NOT_FOUND_LOG, USER, MAIL, email), null);
+			return OtpVerificationResponse.invalid(INVALID_EMAIL);
+		}
+
+		User user = userOpt.get();
+
+		// step-3: guard — reject if the USER is already verified
+		if ( user.isVerified() ) {
+			LoggingUtil.logSecurity(log, OTP_VERIFY, user, FAILED, format(USER_ALREADY_VERIFIED, email));
+			throw new UserAlreadyVerifiedException(USER_ALREADY_VERIFIED_USER_MESSAGE);
+		}
+
+		// step-4: fetch the most recent OTP token for this USER
 		OtpToken latestOtp = otpTokenRepository.findFirstByUserOrderByCreatedAtDesc(user)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, "OTP not found for user: " + email, null);
-				return new InvalidOtpException("Invalid request details");
+				LoggingUtil.logError(log, OTP_VERIFY, OTP_SERVICE, user, format(OTP_NOT_FOUND, email), null);
+				return new InvalidOtpException();
 			});
 
-		validateTokenState(latestOtp, email);
+		// step-5: validate the token state (expired / used / locked)
+		validateTokenState(latestOtp, user, email);
 
+		// step-6: compare the submitted OTP against the stored token
 		if ( ! latestOtp.getOtp().equals(otp) ) {
 			latestOtp.incrementAttempts();
 
 			if ( latestOtp.isLocked() ) {
+				// invalidate the token immediately on lockout
 				latestOtp.setUsed(true);
-				LoggingUtil.logError(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, "OTP locked due to 5 failed attempts for user: " + email, null);
-				throw new OtpExpiredException("This OTP is locked due to too many failed attempts. Please request a new one.");
+				LoggingUtil.logSecurity(log, OTP_VERIFY, user, FAILED, format(OTP_LOCKED, email));
+				throw new OtpExpiredException(OTP_LOCKED_USER_MESSAGE);
 			}
 
-			LoggingUtil.logError(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, "Invalid OTP entered: " + otp, null);
-			throw new InvalidOtpException("Invalid OTP. Attempts left: " + ( OtpToken.MAX_ATTEMPTS - latestOtp.getAttempts() ));
+			LoggingUtil.logSecurity(log, OTP_VERIFY, user, FAILED, format(OTP_INVALID, email));
+			throw new InvalidOtpException(format(TOKEN_INVALID_USER_MESSAGE, OTP, OtpToken.MAX_ATTEMPTS - latestOtp.getAttempts()));
 		}
 
+		// step-7: mark USER as verified and invalidate the used token
 		user.setVerified(true);
 		latestOtp.setUsed(true);
 
-		LoggingUtil.logOperation(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, "OTP verified successfully for user: " + email + ", user is now verified");
+		LoggingUtil.logSecurity(log, OTP_VERIFY, user, SUCCESS, format(OTP_VERIFIED_LOG, email));
 
-		return OtpVerificationResponse.valid("OTP verified successfully");
+		return OtpVerificationResponse.valid();
 	}
 
 	@Transactional
 	public MessageResponse resendOtp ( OtpRequest request ) {
-		LoggingUtil.logOperation(log, MessageConstant.Operation.CREATE, OTP_SERVICE, null, "Resending OTP for user: " + request.email());
+		if ( log.isDebugEnabled() ) {
+			log.debug("Processing OTP resend request for email: {}", request.email());
+		}
 
+		// step-1: delegate to shared generation logic
 		internalGenerateAndSendOtp(request);
 
-		LoggingUtil.logOperation(log, MessageConstant.Operation.CREATE, OTP_SERVICE, null, "OTP resent successfully for user: " + request.email());
+		// step-2: log the resend audit milestone
+		LoggingUtil.logOperation(log, MessageConstant.Operation.OTP_RESEND, OTP_SERVICE, null, format(OTP_RESENT_LOG, request.email()));
 
-		return new MessageResponse("OTP resent successfully");
+		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
 	}
 
 	@Transactional
 	@Scheduled ( cron = "0 0 * * * ?" )
 	public void deleteExpiredOtps () {
-		LoggingUtil.logOperation(log, MessageConstant.Operation.DELETE, OTP_SERVICE, null, "Deleting expired OTPs");
+		if ( log.isInfoEnabled() ) {
+			log.info("Initiating scheduled cleanup of expired OTP tokens");
+		}
+
+		// delete all OTP tokens past their expiry
 		otpTokenRepository.deleteAllExpiredTokens(Instant.now());
-		LoggingUtil.logOperation(log, MessageConstant.Operation.DELETE, OTP_SERVICE, null, "Successfully deleted expired OTPs");
+		LoggingUtil.logOperation(log, OTP_CLEANUP, OTP_SERVICE, null, EXPIRED_OTPS_PURGED);
 	}
 
 	/*
-	 * private methods - is used internally only
+	 * private methods — used internally only
 	 */
 
 	private MessageResponse internalGenerateAndSendOtp ( OtpRequest request ) {
 		String email = request.email();
-		LoggingUtil.logOperation(log, MessageConstant.Operation.CREATE, OTP_SERVICE, null, "Generating OTP for user: " + email);
 
-		User user = userRepository.findUserByEmail(email)
-			.orElseThrow(() -> new UserNotFoundException("User not found"));
-
-		if ( user.isVerified() ) {
-			throw new UserAlreadyVerifiedException("User is already verified");
+		if ( log.isDebugEnabled() ) {
+			log.debug("Generating OTP for email: {}", email);
 		}
 
+		// step-1: fetch the USER from the DB by email
+		Optional< User > userOpt = userRepository.findUserByEmail(email);
+
+		// step-2: guard - reject if no USER found with the provided email
+		if ( userOpt.isEmpty() ) {
+			LoggingUtil.logSecurity(log, OTP_GENERATE, null, FAILED, format(NOT_FOUND_LOG, USER, MAIL, email));
+			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
+		}
+
+		User user = userOpt.get();
+
+		// step-3: guard - reject if the USER is already verified
+		if ( user.isVerified() ) {
+			LoggingUtil.logSecurity(log, OTP_GENERATE, user, FAILED, format(USER_ALREADY_VERIFIED, email));
+			throw new UserAlreadyVerifiedException(USER_ALREADY_VERIFIED_USER_MESSAGE);
+		}
+
+		// step-4: invalidate any active tokens and enforce cooldown window
 		handleActiveTokensAndCooldown(user);
 
+		// step-5: create and persist a new OTP token
 		var otp = OtpToken.builder().user(user).build();
 		var savedOtp = otpTokenRepository.save(otp);
 
+		if ( log.isDebugEnabled() ) {
+			log.debug("OTP token persisted with ID: {} for email: {}", savedOtp.getOtpId(), email);
+		}
+
+		// step-6: dispatch the OTP via email
 		emailService.sendOtp(user.getEmail(), user.getName(), savedOtp.getOtp());
-		return new MessageResponse("OTP sent successfully");
+		LoggingUtil.logOperation(log, OTP_GENERATE, OTP_SERVICE, user, format(OTP_SENT_LOG, email));
+
+		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
 	}
 
 	private void handleActiveTokensAndCooldown ( User user ) {
@@ -143,15 +195,17 @@ public class OtpService {
 			.toList();
 
 		if ( ! activeTokens.isEmpty() ) {
-			OtpToken latestToken = activeTokens.getLast();
+			OtpToken latestToken = activeTokens.get(activeTokens.size() - 1);
 
+			// enforce cooldown — throws CooldownException if too soon
 			TokenSecurityUtil.validateCooldown(latestToken.getCreatedAt(), OTP_COOLDOWN_SECONDS);
 
+			// invalidate all previously active tokens before issuing a new one
 			activeTokens.forEach(token -> token.setUsed(true));
 		}
 	}
 
-	private void validateTokenState ( OtpToken token, String email ) {
+	private void validateTokenState ( OtpToken token, User user, String email ) {
 		String errorMsg = TokenSecurityUtil.getTokenStateError(
 			token.isExpired(),
 			token.isUsed(),
@@ -159,7 +213,7 @@ public class OtpService {
 		);
 
 		if ( errorMsg != null ) {
-			LoggingUtil.logError(log, MessageConstant.Operation.AUTHENTICATE, OTP_SERVICE, null, errorMsg + " User: " + email, null);
+			LoggingUtil.logSecurity(log, OTP_VERIFY, user, FAILED, errorMsg + " — email: " + email);
 			throw new OtpExpiredException(errorMsg);
 		}
 	}

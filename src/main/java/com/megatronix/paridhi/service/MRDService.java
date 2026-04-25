@@ -89,7 +89,7 @@ public class MRDService {
 					user,
 					"User with ID: " + user.getUserId() + " has not created its profile",
 					null);
-			throw new ProfileNotYetCreatedException("You need to create your profile first");
+			throw new ProfileNotYetCreatedException();
 		}
 
 		// create new MRD registration with an unique GID
