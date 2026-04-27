@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping ( "/api/events" )
@@ -28,7 +29,7 @@ public class EventController {
 	// Public endpoints
 
 	@GetMapping ()
-	public ResponseEntity< List< EventPublicResponse > > getAllEvents () {
+	public ResponseEntity< Map< String, List< EventPublicResponse > > > getAllEvents () {
 		return ResponseEntity.ok(eventService.getAllEvents());
 	}
 
@@ -38,14 +39,14 @@ public class EventController {
 	}
 
 	@GetMapping ( "/status" )
-	public ResponseEntity< List< EventPublicResponse > > getEventsByStatus (
+	public ResponseEntity< Map< String, List< EventPublicResponse > > > getEventsByStatus (
 		@RequestParam ( name = "isOpen" ) boolean isOpen
 	) {
 		return ResponseEntity.ok(eventService.getEventsByRegistration(isOpen));
 	}
 
 	@GetMapping ( "/type/{eventType}" )
-	public ResponseEntity< List< EventPublicResponse > > getEventsByType ( @PathVariable EventType eventType ) {
+	public ResponseEntity< Map< String, List< EventPublicResponse > > > getEventsByType ( @PathVariable EventType eventType ) {
 		return ResponseEntity.ok(eventService.getEventsByType(eventType));
 	}
 

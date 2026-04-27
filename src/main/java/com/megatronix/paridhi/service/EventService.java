@@ -22,8 +22,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +41,7 @@ public class EventService {
 	 * public methods - doesn't require authentication
 	 */
 
-	public List< EventPublicResponse > getAllEvents () {
+	public Map< String, List< EventPublicResponse > > getAllEvents () {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -60,10 +63,8 @@ public class EventService {
 			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + AppConstant.EVENT
 		);
 
-		// map events to EventPublicResponse DTOs and return
-		return events.stream()
-			.map(EventPublicResponse::fromEvent)
-			.toList();
+		// map events to EventPublicResponse DTOs and group by domain
+		return groupEventsByDomain(events);
 	}
 
 	public List< EventPublicResponse > getEventsByDomain ( Domain domain ) {
@@ -94,7 +95,7 @@ public class EventService {
 			.toList();
 	}
 
-	public List< EventPublicResponse > getEventsByRegistration ( boolean isEventRegistrationOpen ) {
+	public Map< String, List< EventPublicResponse > > getEventsByRegistration ( boolean isEventRegistrationOpen ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -117,13 +118,11 @@ public class EventService {
 				( isEventRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED )
 		);
 
-		// map events to EventPublicResponse DTOs and return
-		return events.stream()
-			.map(EventPublicResponse::fromEvent)
-			.toList();
+		// map events to EventPublicResponse DTOs and group by domain
+		return groupEventsByDomain(events);
 	}
 
-	public List< EventPublicResponse > getEventsByType ( EventType eventType ) {
+	public Map< String, List< EventPublicResponse > > getEventsByType ( EventType eventType ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -145,10 +144,8 @@ public class EventService {
 			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + " events of type: " + eventType
 		);
 
-		// map events to EventPublicResponse DTOs and return
-		return events.stream()
-			.map(EventPublicResponse::fromEvent)
-			.toList();
+		// map events to EventPublicResponse DTOs and group by domain
+		return groupEventsByDomain(events);
 	}
 
 	public EventPublicResponse getEventById ( Long eventId ) {
@@ -528,5 +525,15 @@ public class EventService {
 			throw new IllegalArgumentException(String.format(MessageConstant.ErrorTemplate.TEAM_SIZE,
 				request.minPlayers(), request.maxPlayers(), request.name()));
 		}
+	}
+
+	private Map< String, List< EventPublicResponse > > groupEventsByDomain ( List< Event > events ) {
+		return events.stream()
+			.map(EventPublicResponse::fromEvent)
+			.collect(Collectors.groupingBy(
+				e -> e.domain() != null ? e.domain().name() : "UNKNOWN",
+				LinkedHashMap::new,
+				Collectors.toList()
+			));
 	}
 }
