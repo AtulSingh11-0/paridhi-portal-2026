@@ -1,0 +1,51 @@
+services:
+    # Local Database
+    mysql:
+        image: mysql:8.0
+        container_name: paridhi-dev-mysql
+        ports:
+            - "3307:3306"
+        env_file:
+            -   .env.dev
+        environment:
+            MYSQL_DATABASE: paridhi_dev_db
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_USER: ${DEV_DB_USER}
+            MYSQL_PASSWORD: ${DEV_DB_PASS}
+
+    # Local Redis
+    redis:
+        image: redis:7-alpine
+        container_name: paridhi-dev-redis
+        ports:
+            - "6379:6379"
+        env_file:
+            -   .env.dev
+
+    # Local Metrics Engine
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: paridhi-dev-prometheus
+        ports:
+            - "9090:9090"
+        volumes:
+            - ./prometheus-dev.yml:/etc/prometheus/prometheus.yml
+
+    # Local Log Engine
+    loki:
+        image: grafana/loki:2.9.2
+        container_name: paridhi-dev-loki
+        ports:
+            - "3100:3100"
+        command: -config.file=/etc/loki/local-config.yaml
+
+    # Local Dashboard
+    grafana:
+        image: grafana/grafana:latest
+        container_name: paridhi-dev-grafana
+        ports:
+            - "3000:3000"
+        env_file:
+            - .env.dev
+        environment:
+            - GF_SECURITY_ADMIN_PASSWORD=${DEV_GRAFANA_ADMIN_PASS}
