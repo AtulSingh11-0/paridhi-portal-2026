@@ -5,6 +5,7 @@ import com.megatronix.paridhi.constant.Domain;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.constant.Role;
 import com.megatronix.paridhi.dto.request.EventComboRequest;
+import com.megatronix.paridhi.dto.response.CategorizedEventComboResponse;
 import com.megatronix.paridhi.dto.response.EventComboAdminResponse;
 import com.megatronix.paridhi.dto.response.EventComboPublicResponse;
 import com.megatronix.paridhi.dto.response.ImageUploadResult;
@@ -27,8 +28,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashSet;
 import java.util.List;
 
+import static com.megatronix.paridhi.dto.response.CategorizedEventComboResponse.of;
+
 @Service
 public class EventComboService {
+
 	private static final Logger log = LoggerFactory.getLogger(EventComboService.class);
 	private final EventComboRepository eventComboRepository;
 	private final EventRepository eventRepository;
@@ -45,7 +49,7 @@ public class EventComboService {
 	}
 
 	/*
-	 * Public methods - don't require authentication
+	 * Public methods - doesn't require authentication
 	 */
 
 	/**
@@ -53,7 +57,8 @@ public class EventComboService {
 	 *
 	 * @return List of EventComboPublicResponse objects containing all combos
 	 */
-	public List< EventComboPublicResponse > getAllEventCombos () {
+	@Transactional ( readOnly = true )
+	public CategorizedEventComboResponse getAllEventCombos () {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -75,10 +80,8 @@ public class EventComboService {
 			String.format(MessageConstant.SuccessTemplate.FETCHED_COUNT, combos.size(), "combos")
 		);
 
-		// return the list of combos as EventComboPublicResponse objects
-		return combos.stream()
-			.map(EventComboPublicResponse::fromCombo)
-			.toList();
+		// return the categorized response
+		return of(combos);
 	}
 
 	/**
@@ -90,6 +93,7 @@ public class EventComboService {
 	 *
 	 * @throws ComboNotFoundException if combo with given ID doesn't exist
 	 */
+	@Transactional ( readOnly = true )
 	public EventComboPublicResponse getEventComboById ( Long id ) {
 		// log the operation
 		LoggingUtil.logOperation(
@@ -123,6 +127,7 @@ public class EventComboService {
 	 *
 	 * @return List of EventComboPublicResponse objects for the specified domain
 	 */
+	@Transactional ( readOnly = true )
 	public List< EventComboPublicResponse > getEventCombosByDomain ( Domain domain ) {
 		// log the operation
 		LoggingUtil.logOperation(
@@ -159,7 +164,8 @@ public class EventComboService {
 	 *
 	 * @return List of EventComboPublicResponse objects with the specified registration status
 	 */
-	public List< EventComboPublicResponse > getEventCombosByStatus ( boolean isEventComboRegistrationOpen ) {
+	@Transactional ( readOnly = true )
+	public CategorizedEventComboResponse getEventCombosByStatus ( boolean isEventComboRegistrationOpen ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -181,10 +187,8 @@ public class EventComboService {
 			String.format(MessageConstant.SuccessTemplate.FETCHED_COUNT, combos.size(), "combos with registration status: " + ( isEventComboRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED ))
 		);
 
-		// return the list of combos as EventComboPublicResponse objects
-		return combos.stream()
-			.map(EventComboPublicResponse::fromCombo)
-			.toList();
+		// return the categorized response
+		return of(combos);
 	}
 
 	/*
@@ -602,7 +606,7 @@ public class EventComboService {
 	}
 
 	/*
-	 * Private methods - is used internally only
+	 * Private methods - used internally only
 	 */
 
 	/**
@@ -715,5 +719,4 @@ public class EventComboService {
 				return new ComboNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO));
 			});
 	}
-
 }
