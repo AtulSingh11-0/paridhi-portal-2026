@@ -2,6 +2,7 @@ package com.megatronix.paridhi.service;
 
 import com.megatronix.paridhi.constant.*;
 import com.megatronix.paridhi.dto.request.EventRequest;
+import com.megatronix.paridhi.dto.response.CategorizedEventResponse;
 import com.megatronix.paridhi.dto.response.EventAdminResponse;
 import com.megatronix.paridhi.dto.response.EventPublicResponse;
 import com.megatronix.paridhi.dto.response.ImageUploadResult;
@@ -25,9 +26,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Set;
 
+import static com.megatronix.paridhi.dto.response.CategorizedEventResponse.of;
+
 @Service
 @RequiredArgsConstructor
 public class EventService {
+
 	private static final Logger log = LoggerFactory.getLogger(EventService.class);
 	private final TeamRepository teamRepository;
 	private final EventRepository eventRepository;
@@ -38,7 +42,7 @@ public class EventService {
 	 * public methods - doesn't require authentication
 	 */
 
-	public List< EventPublicResponse > getAllEvents () {
+	public CategorizedEventResponse getAllEvents () {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -60,10 +64,8 @@ public class EventService {
 			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + AppConstant.EVENT
 		);
 
-		// map events to EventPublicResponse DTOs and return
-		return events.stream()
-			.map(EventPublicResponse::fromEvent)
-			.toList();
+		// map events to EventPublicResponse DTOs, group by domain in a sorted map, and return
+		return of(events);
 	}
 
 	public List< EventPublicResponse > getEventsByDomain ( Domain domain ) {
@@ -94,7 +96,7 @@ public class EventService {
 			.toList();
 	}
 
-	public List< EventPublicResponse > getEventsByRegistration ( boolean isEventRegistrationOpen ) {
+	public CategorizedEventResponse getEventsByRegistration ( boolean isEventRegistrationOpen ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -117,13 +119,11 @@ public class EventService {
 				( isEventRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED )
 		);
 
-		// map events to EventPublicResponse DTOs and return
-		return events.stream()
-			.map(EventPublicResponse::fromEvent)
-			.toList();
+		// map events to EventPublicResponse DTOs, group by domain in a sorted map, and return
+		return of(events);
 	}
 
-	public List< EventPublicResponse > getEventsByType ( EventType eventType ) {
+	public CategorizedEventResponse getEventsByType ( EventType eventType ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -145,10 +145,8 @@ public class EventService {
 			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + " events of type: " + eventType
 		);
 
-		// map events to EventPublicResponse DTOs and return
-		return events.stream()
-			.map(EventPublicResponse::fromEvent)
-			.toList();
+		// map events to EventPublicResponse DTOs, group by domain in a sorted map, and return
+		return of(events);
 	}
 
 	public EventPublicResponse getEventById ( Long eventId ) {
@@ -212,7 +210,6 @@ public class EventService {
 			.eventMinPlayers(request.minPlayers())
 			.eventMaxPlayers(request.maxPlayers())
 			.eventRegistrationFee(request.registrationFee())
-			.eventPrizePool(( request.prizePool() ))
 			.build();
 
 		// save event to database
@@ -263,7 +260,6 @@ public class EventService {
 		existingEvent.setEventMinPlayers(request.minPlayers());
 		existingEvent.setEventMaxPlayers(request.maxPlayers());
 		existingEvent.setEventRegistrationFee(request.registrationFee());
-		existingEvent.setEventPrizePool(request.prizePool());
 
 		// save updated event to database
 		var updatedEvent = eventRepository.save(existingEvent);
@@ -470,7 +466,7 @@ public class EventService {
 	}
 
 	/*
-	 * private methods - is used internally only
+	 * private methods — used internally only
 	 */
 
 	private void checkUserAccess ( User user, String methodType ) {

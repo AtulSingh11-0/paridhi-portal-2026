@@ -6,12 +6,13 @@ import com.megatronix.paridhi.constant.EventType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.hibernate.type.SqlTypes.JSON;
 
 @Getter
 @Setter
@@ -21,6 +22,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table ( name = "events" )
 public class Event extends Auditable {
+
 	@Id
 	@GeneratedValue ( strategy = GenerationType.IDENTITY )
 	@Column ( name = "event_id", updatable = false, nullable = false )
@@ -46,7 +48,7 @@ public class Event extends Auditable {
 	@Column ( name = "event_venue", nullable = false )
 	private String eventVenue;
 
-	@JdbcTypeCode ( SqlTypes.JSON )
+	@JdbcTypeCode ( JSON )
 	@Column ( name = "event_coordinator_details", columnDefinition = "json", nullable = false )
 	@Builder.Default
 	private List< String > eventCoordinatorDetails = new ArrayList<>();
@@ -77,9 +79,6 @@ public class Event extends Auditable {
 	@Column ( name = "is_event_registration_open", nullable = false )
 	@Builder.Default
 	private boolean isEventRegistrationOpen = false;
-
-	@Column ( name = "event_prize_pool", nullable = false )
-	private BigDecimal eventPrizePool;
 
 	@PrePersist
 	@PreUpdate
