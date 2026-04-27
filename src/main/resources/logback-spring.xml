@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <springProfile name="dev | test">
-        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder>
-                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{requestId})] [%magenta(%thread)] %yellow(%logger{36}) - %msg%n</pattern>
-            </encoder>
-        </appender>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{requestId})] [%magenta(%thread)]
+                %yellow(%logger{36}) - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
 
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</url>
+        </http>
+
+        <labels>
+            app=paridhi-portal
+            env=dev
+        </labels>
+
+        <structuredMetadata>off</structuredMetadata>
+
+        <message>
+            <pattern>l=%level c=%logger{20} t=%thread reqId=%X{requestId} | %msg %ex</pattern>
+        </message>
+    </appender>
+
+    <springProfile name="dev | staging">
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
         </root>
+
         <logger name="com.megatronix.paridhi" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
         </logger>
-    </springProfile>
-
-    <springProfile name="prod">
-        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-                <includeMdcKeyName>requestId</includeMdcKeyName>
-                <includeMdcKeyName>clientIp</includeMdcKeyName>
-                <includeMdcKeyName>method</includeMdcKeyName>
-                <includeMdcKeyName>path</includeMdcKeyName>
-            </encoder>
-        </appender>
-
-        <root level="INFO">
-            <appender-ref ref="JSON_CONSOLE"/>
-        </root>
-        <logger name="com.megatronix.paridhi" level="INFO" additivity="false">
-            <appender-ref ref="JSON_CONSOLE"/>
-        </logger>
-
-        <logger name="org.apache.catalina" level="WARN"/>
-        <logger name="org.springframework" level="WARN"/>
-        <logger name="org.hibernate" level="WARN"/>
-        <logger name="com.zaxxer.hikari" level="WARN"/>
     </springProfile>
 
 </configuration>

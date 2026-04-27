@@ -5,7 +5,7 @@ services:
         restart: unless-stopped
         environment:
             MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
-            MYSQL_DATABASE: paridhi-portal-2026
+            MYSQL_DATABASE: paridhi_dev_db
         ports:
             # HOST:CONTAINER (Maps your laptop's 3307 to the container's internal 3306)
             - "3307:3306"
@@ -26,13 +26,15 @@ services:
         restart: unless-stopped
         ports:
             - "6379:6379"
-        command: redis-server --requirepass ${REDIS_PASSWORD}
+        command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+        volumes:
+            - redis-data:/data
         networks:
             - paridhi-network
 
     app:
-        image: ${DOCKER_USERNAME}/paridhi-portal-2026:v2
-#        image: localdev/paridhi-portal-2026:v2
+#        image: ${DOCKER_USERNAME}/paridhi-portal-2026:v4
+        image: localdev/paridhi-portal-2026:v4
         container_name: paridhi-portal
         restart: unless-stopped
         depends_on:
@@ -44,6 +46,9 @@ services:
             - "8080:8080"
         env_file:
             - .env.docker
+        environment:
+            - SPRING_PROFILES_ACTIVE=dev
+            - LOKI_URL=http://localhost:9999/void
         networks:
             - paridhi-network
         deploy:
@@ -57,3 +62,4 @@ networks:
 
 volumes:
     mysql-data:
+    redis-data:
