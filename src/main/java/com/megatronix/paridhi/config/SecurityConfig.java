@@ -48,10 +48,11 @@ public class SecurityConfig {
 
 	private static final String[] WHITELISTED_URLS = {
 		"/",                         // Landing page
+		"/actuator/**",              // Actuator endpoints
 		"/api/auth/**",              // Auth, Password Reset, and OTP Controllers
 		"/api/phoneNumber",          // Contact submissions
 		"/api/events/**",            // Public event browsing
-		"/api/combos/**",            // Public combo browsing
+		"/api/event-combos/**",      // Public combo browsing
 		"/api/galleries/**",         // Gallery viewing
 		"/api/megatronix-team",      // Public team info
 		"/api/domain-posters/**",    // Public posters

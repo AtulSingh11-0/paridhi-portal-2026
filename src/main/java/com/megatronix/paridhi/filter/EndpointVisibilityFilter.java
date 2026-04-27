@@ -30,6 +30,8 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 	private static final List< String > LIVE_ENDPOINTS = List.of(
 		"/api/auth",
 		"/api/profiles",
+		"/api/events",
+		"/api/event-combos",
 		"/swagger-ui",
 		"/v3/api-docs"
 	);
