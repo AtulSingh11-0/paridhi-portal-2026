@@ -16,7 +16,6 @@ import com.megatronix.paridhi.repository.EventComboRepository;
 import com.megatronix.paridhi.repository.EventRepository;
 import com.megatronix.paridhi.repository.TeamRepository;
 import com.megatronix.paridhi.util.LoggingUtil;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,11 +24,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Set;
-
-import static com.megatronix.paridhi.dto.response.CategorizedEventResponse.of;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class EventService {
 
 	private static final Logger log = LoggerFactory.getLogger(EventService.class);
@@ -38,11 +36,23 @@ public class EventService {
 	private final EventComboRepository eventComboRepository;
 	private final ImageStorageService imageStorageService;
 
+	public EventService (
+		TeamRepository teamRepository,
+		EventRepository eventRepository,
+		EventComboRepository eventComboRepository,
+		ImageStorageService imageStorageService
+	) {
+		this.teamRepository = teamRepository;
+		this.eventRepository = eventRepository;
+		this.eventComboRepository = eventComboRepository;
+		this.imageStorageService = imageStorageService;
+	}
+
 	/*
 	 * public methods - doesn't require authentication
 	 */
 
-	public CategorizedEventResponse getAllEvents () {
+	public List< CategorizedEventResponse > getAllEvents () {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -64,8 +74,7 @@ public class EventService {
 			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + AppConstant.EVENT
 		);
 
-		// map events to EventPublicResponse DTOs, group by domain in a sorted map, and return
-		return of(events);
+		return groupEventsByDomain(events);
 	}
 
 	public List< EventPublicResponse > getEventsByDomain ( Domain domain ) {
@@ -96,7 +105,7 @@ public class EventService {
 			.toList();
 	}
 
-	public CategorizedEventResponse getEventsByRegistration ( boolean isEventRegistrationOpen ) {
+	public List< CategorizedEventResponse > getEventsByRegistration ( boolean isEventRegistrationOpen ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -119,11 +128,10 @@ public class EventService {
 				( isEventRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED )
 		);
 
-		// map events to EventPublicResponse DTOs, group by domain in a sorted map, and return
-		return of(events);
+		return groupEventsByDomain(events);
 	}
 
-	public CategorizedEventResponse getEventsByType ( EventType eventType ) {
+	public List< CategorizedEventResponse > getEventsByType ( EventType eventType ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -145,8 +153,7 @@ public class EventService {
 			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + " events of type: " + eventType
 		);
 
-		// map events to EventPublicResponse DTOs, group by domain in a sorted map, and return
-		return of(events);
+		return groupEventsByDomain(events);
 	}
 
 	public EventPublicResponse getEventById ( Long eventId ) {
@@ -468,6 +475,18 @@ public class EventService {
 	/*
 	 * private methods — used internally only
 	 */
+
+	private List< CategorizedEventResponse > groupEventsByDomain ( List< Event > events ) {
+		return events.stream()
+			.collect(Collectors.groupingBy(
+				e -> e.getDomain().name(),
+				TreeMap::new,
+				Collectors.mapping(EventPublicResponse::fromEvent, Collectors.toList())
+			))
+			.entrySet().stream()
+			.map(entry -> new CategorizedEventResponse(entry.getKey(), entry.getValue()))
+			.toList();
+	}
 
 	private void checkUserAccess ( User user, String methodType ) {
 		// check if user is null

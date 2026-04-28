@@ -19,6 +19,7 @@ import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.EventComboRepository;
 import com.megatronix.paridhi.repository.EventRepository;
 import com.megatronix.paridhi.util.LoggingUtil;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,10 +28,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashSet;
 import java.util.List;
-
-import static com.megatronix.paridhi.dto.response.CategorizedEventComboResponse.of;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EventComboService {
 
 	private static final Logger log = LoggerFactory.getLogger(EventComboService.class);
@@ -38,104 +40,69 @@ public class EventComboService {
 	private final EventRepository eventRepository;
 	private final ImageStorageService imageStorageService;
 
-	public EventComboService (
-		EventComboRepository eventComboRepository,
-		EventRepository eventRepository,
-		ImageStorageService imageStorageService
-	) {
-		this.eventComboRepository = eventComboRepository;
-		this.eventRepository = eventRepository;
-		this.imageStorageService = imageStorageService;
-	}
-
 	/*
 	 * Public methods - doesn't require authentication
 	 */
 
-	/**
-	 * Retrieves all event combos from the database
-	 *
-	 * @return List of EventComboPublicResponse objects containing all combos
-	 */
-	@Transactional ( readOnly = true )
-	public CategorizedEventComboResponse getAllEventCombos () {
+	public List< CategorizedEventComboResponse > getAllEventCombos () {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			"Fetching all combos"
+			"Fetching all event combos"
 		);
 
-		// fetch all combos from the repository
+		// fetch all event combos from the database
 		List< EventCombo > combos = eventComboRepository.findAll();
 
-		// log the successful retrieval of combos
+		// log the successful retrieval of event combos
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			String.format(MessageConstant.SuccessTemplate.FETCHED_COUNT, combos.size(), "combos")
+			AppConstant.SUCCESSFULLY_RETRIEVED + combos.size() + " event combos"
 		);
 
-		// return the categorized response
-		return of(combos);
+		return groupEventCombosByDomain(combos);
 	}
 
-	/**
-	 * Retrieves a specific combo by its ID
-	 *
-	 * @param id The ID of the combo to retrieve
-	 *
-	 * @return EventComboPublicResponse object containing the combo details
-	 *
-	 * @throws ComboNotFoundException if combo with given ID doesn't exist
-	 */
-	@Transactional ( readOnly = true )
-	public EventComboPublicResponse getEventComboById ( Long id ) {
+	public EventComboPublicResponse getEventComboById ( Long eventComboId ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			"Fetching combo with ID: " + id
+			"Fetching event combo with ID: " + eventComboId
 		);
 
-		// find the combo
-		var combo = fetchEventComboById(id, null);
+		// find the event combo
+		var combo = fetchEventComboById(eventComboId, null);
 
-		// log the successful retrieval of the combo
+		// log the successful retrieval of the event combo
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			String.format(MessageConstant.SuccessTemplate.FETCHED, "combo with ID: " + id + " - " + combo.getEventComboName())
+			String.format(MessageConstant.SuccessTemplate.FETCHED, "event combo with ID: " + eventComboId + " - " + combo.getEventComboName())
 		);
 
 		// return the combo as a EventComboPublicResponse object
 		return EventComboPublicResponse.fromCombo(combo);
 	}
 
-	/**
-	 * Retrieves all combos for a specific domain
-	 *
-	 * @param domain The domain to filter combos by
-	 *
-	 * @return List of EventComboPublicResponse objects for the specified domain
-	 */
-	@Transactional ( readOnly = true )
 	public List< EventComboPublicResponse > getEventCombosByDomain ( Domain domain ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			"Fetching combos for domain: " + domain
+			"Fetching event combos for domain: " + domain
 		);
 
 		// fetch combos by domain from the repository
@@ -145,50 +112,40 @@ public class EventComboService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
 			String.format(MessageConstant.SuccessTemplate.FETCHED_COUNT, combos.size(), "combos for domain: " + domain)
 		);
 
-		// return the list of combos as EventComboPublicResponse objects
+		// map event combos to EventComboPublicResponse DTOs and return
 		return combos.stream()
 			.map(EventComboPublicResponse::fromCombo)
 			.toList();
 	}
 
-	/**
-	 * Retrieves combos filtered by their registration status
-	 *
-	 * @param isEventComboRegistrationOpen true to get combos with open registration, false
-	 *                                     for closed registration
-	 *
-	 * @return List of EventComboPublicResponse objects with the specified registration status
-	 */
-	@Transactional ( readOnly = true )
-	public CategorizedEventComboResponse getEventCombosByStatus ( boolean isEventComboRegistrationOpen ) {
+	public List< CategorizedEventComboResponse > getEventCombosByStatus ( boolean isOpen ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			"Fetching combos by registration status: " + ( isEventComboRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED )
+			"Fetching event combos by status: " + ( isOpen ? "OPEN" : "CLOSED" )
 		);
 
-		// fetch combos by registration status from the repository
-		List< EventCombo > combos = eventComboRepository.findByIsEventComboRegistrationOpen(isEventComboRegistrationOpen);
+		// fetch all event combos from the database
+		List< EventCombo > combos = eventComboRepository.findByIsEventComboRegistrationOpen(isOpen);
 
-		// log the successful retrieval of combos
+		// log the successful retrieval of event combos
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.READ,
-			AppConstant.COMBO_SERVICE,
+			AppConstant.EVENT_COMBO,
 			null,
-			String.format(MessageConstant.SuccessTemplate.FETCHED_COUNT, combos.size(), "combos with registration status: " + ( isEventComboRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED ))
+			AppConstant.SUCCESSFULLY_RETRIEVED + combos.size() + " event combos"
 		);
 
-		// return the categorized response
-		return of(combos);
+		return groupEventCombosByDomain(combos);
 	}
 
 	/*
@@ -606,8 +563,35 @@ public class EventComboService {
 	}
 
 	/*
-	 * Private methods - used internally only
+	 * private methods - used internally only
 	 */
+
+	private List< CategorizedEventComboResponse > groupEventCombosByDomain ( List< EventCombo > combos ) {
+		return combos.stream()
+			.collect(Collectors.groupingBy(
+				e -> e.getDomain().name(),
+				TreeMap::new,
+				Collectors.mapping(EventComboPublicResponse::fromCombo, Collectors.toList())
+			))
+			.entrySet().stream()
+			.map(entry -> new CategorizedEventComboResponse(entry.getKey(), entry.getValue()))
+			.toList();
+	}
+
+	private EventCombo fetchEventComboById ( Long id, User user ) {
+		return eventComboRepository.findById(id)
+			.orElseThrow(() -> {
+				LoggingUtil.logError(
+					log,
+					MessageConstant.Operation.READ,
+					AppConstant.COMBO_SERVICE,
+					user,
+					String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO),
+					null
+				);
+				return new ComboNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO));
+			});
+	}
 
 	/**
 	 * Validates that the user has appropriate permissions to perform operations on
@@ -693,30 +677,5 @@ public class EventComboService {
 			);
 			throw new InvalidDomainException(String.format(MessageConstant.ErrorTemplate.INVALID_DOMAIN, domain));
 		}
-	}
-
-	/**
-	 * Fetches a combo by its ID from the database
-	 *
-	 * @param id   The ID of the combo to fetch
-	 * @param user The authenticated user requesting the combo
-	 *
-	 * @return EventCombo		object containing the combo details
-	 *
-	 * @throws ComboNotFoundException if combo with given ID doesn't exist
-	 */
-	private EventCombo fetchEventComboById ( Long id, User user ) {
-		return eventComboRepository.findById(id)
-			.orElseThrow(() -> {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.READ,
-					AppConstant.COMBO_SERVICE,
-					user,
-					String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO),
-					null
-				);
-				return new ComboNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO));
-			});
 	}
 }
