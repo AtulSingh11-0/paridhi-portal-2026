@@ -12,49 +12,49 @@ import java.time.Instant;
 import java.util.List;
 
 @Builder
-@Schema(description = "Response payload for detailed event information (Admin view)")
+@Schema ( description = "Response payload for detailed event information (Admin view)" )
 public record EventAdminResponse(
-	@Schema(description = "Unique identifier of the event", example = "1")
+	@Schema ( description = "Unique identifier of the event", example = "1" )
 	Long id,
-	@Schema(description = "Domain of the event", example = "CODING")
+	@Schema ( description = "Domain of the event", example = "CODING" )
 	Domain domain,
-	@Schema(description = "Name of the event", example = "Code-O-Fiesta")
+	@Schema ( description = "Name of the event", example = "Code-O-Fiesta" )
 	String name,
-	@Schema(description = "Type of the event", example = "MAIN")
+	@Schema ( description = "Type of the event", example = "MAIN" )
 	EventType type,
-	@Schema(description = "Date and time of the event", example = "1778839200.000000000")
+	@Schema ( description = "Date and time of the event", example = "1778839200.000000000" )
 	Instant date,
-	@Schema(description = "Detailed description of the event", example = "A high-stakes coding competition.")
+	@Schema ( description = "Detailed description of the event", example = "A high-stakes coding competition." )
 	String description,
-	@Schema(description = "Location where the event will take place", example = "Lab 1")
+	@Schema ( description = "Location where the event will take place", example = "Lab 1" )
 	String venue,
-	@Schema(description = "List of coordinator details", example = "[\"John Doe - 9876543210\"]")
+	@Schema ( description = "List of coordinator details", example = "[\"John Doe - 9876543210\"]" )
 	List< String > coordinatorDetails,
-	@Schema(description = "URL to the event poster image", example = "https://ik.imagekit.io/...")
+	@Schema ( description = "URL to the event poster image", example = "https://ik.imagekit.io/..." )
 	String posterUrl,
-	@Schema(description = "Internal ID of the poster file in storage", example = "69e0d6...")
+	@Schema ( description = "Internal ID of the poster file in storage", example = "69e0d6..." )
 	String posterFileId,
-	@Schema(description = "URL to the event's rulebook PDF", example = "https://example.com/rulebook.pdf")
+	@Schema ( description = "URL to the event's rulebook PDF", example = "https://example.com/rulebook.pdf" )
 	String ruleBookUrl,
 	@JsonProperty ( "isTeamEvent" )
-	@Schema(description = "Whether the event is a team-based competition", example = "true")
+	@Schema ( description = "Whether the event is a team-based competition", example = "true" )
 	boolean isTeamEvent,
-	@Schema(description = "Minimum number of players per team", example = "1")
+	@Schema ( description = "Minimum number of players per team", example = "1" )
 	Integer minPlayers,
-	@Schema(description = "Maximum number of players per team", example = "4")
+	@Schema ( description = "Maximum number of players per team", example = "4" )
 	Integer maxPlayers,
-	@Schema(description = "Fee required to register for the event", example = "150.00")
+	@Schema ( description = "Fee required to register for the event", example = "150.00" )
 	BigDecimal registrationFee,
 	@JsonProperty ( "isRegistrationOpen" )
-	@Schema(description = "Whether registration is currently open for this event", example = "true")
+	@Schema ( description = "Whether registration is currently open for this event", example = "true" )
 	boolean isRegistrationOpen,
-	@Schema(description = "Timestamp when the event was created", example = "1778839200.000000000")
+	@Schema ( description = "Timestamp when the event was created", example = "1778839200.000000000" )
 	Instant createdAt,
-	@Schema(description = "Timestamp when the event was last updated", example = "1778839200.000000000")
+	@Schema ( description = "Timestamp when the event was last updated", example = "1778839200.000000000" )
 	Instant updatedAt,
-	@Schema(description = "Username of the admin who created the event", example = "john@doe.com")
+	@Schema ( description = "Username of the admin who created the event", example = "john@doe.com" )
 	String createdByUsername,
-	@Schema(description = "Username of the admin who last updated the event", example = "john@doe.com")
+	@Schema ( description = "Username of the admin who last updated the event", example = "john@doe.com" )
 	String updatedByUsername
 ) {
 	public static EventAdminResponse fromEvent ( Event event ) {

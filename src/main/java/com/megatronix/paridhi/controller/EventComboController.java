@@ -43,6 +43,7 @@ public class EventComboController {
 
 	// Public endpoints
 
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping
 	@Operation (
 		summary = "Get all event combos",
@@ -104,6 +105,7 @@ public class EventComboController {
 		return ResponseEntity.ok(eventComboService.getEventComboById(id));
 	}
 
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/domains/{domain}" )
 	@Operation (
 		summary = "Get combos by domain",
@@ -127,6 +129,7 @@ public class EventComboController {
 		return ResponseEntity.ok(eventComboService.getEventCombosByDomain(domain));
 	}
 
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/status" )
 	@Operation (
 		summary = "Get combos by registration status",

@@ -18,7 +18,7 @@ public record EventComboPublicResponse(
 	Domain domain,
 	@Schema(description = "Name of the combo", example = "Mega Coding Pack")
 	String name,
-	@Schema(description = "Detailed description of the combo", example = "Includes Code-O-Fiesta and Problematrx.")
+	@Schema(description = "Detailed description of the combo", example = "Includes Code-O-Fiesta and ProbleMatrix.")
 	String description,
 	@Schema(description = "List of events included in this combo")
 	List< EventPublicResponse > events,

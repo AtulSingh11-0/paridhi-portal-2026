@@ -43,11 +43,11 @@ public class RateLimitingService {
 		Duration penaltyDuration;
 
 		// progressing ban logic
-		if ( strikes == 1 ) penaltyDuration = ofMinutes(5);
-		else if ( strikes == 2 ) penaltyDuration = ofMinutes(15);
-		else if ( strikes == 3 ) penaltyDuration = ofMinutes(30);
-		else if ( strikes == 4 ) penaltyDuration = ofHours(1);
-		else penaltyDuration = ofHours(24);
+		if ( strikes == 1 ) penaltyDuration = ofMinutes(15);
+		else if ( strikes == 2 ) penaltyDuration = ofMinutes(30);
+		else if ( strikes == 3 ) penaltyDuration = ofHours(1);
+		else if ( strikes == 4 ) penaltyDuration = ofHours(6);
+		else penaltyDuration = ofHours(72);
 
 		log.warn("Applying Strike {} to client {}. Banned for {} minutes.", strikes, clientKey, penaltyDuration.toMinutes());
 		stringRedisTemplate.opsForValue().set(penaltyKey, "true", penaltyDuration);

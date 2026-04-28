@@ -27,6 +27,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
+
 @Service
 public class EventService {
 
@@ -46,6 +48,42 @@ public class EventService {
 		this.eventRepository = eventRepository;
 		this.eventComboRepository = eventComboRepository;
 		this.imageStorageService = imageStorageService;
+	}
+
+	public List< com.megatronix.paridhi.dto.response.CategorizedEventAndEventComboResponse > getAllEventsAndCombos () {
+		// fetch all events and event combos
+		List< Event > events = eventRepository.findAll();
+		List< EventCombo > combos = eventComboRepository.findAll();
+
+		// Create the map of domains
+		java.util.Map< String, List< EventPublicResponse > > eventsByDomain = events.stream()
+			.map(EventPublicResponse::fromEvent)
+			.collect(Collectors.groupingBy(
+				e -> e.domain().name(),
+				() -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
+				toList()
+			));
+
+		java.util.Map< String, List< com.megatronix.paridhi.dto.response.EventComboPublicResponse > > combosByDomain = combos.stream()
+			.map(com.megatronix.paridhi.dto.response.EventComboPublicResponse::fromCombo)
+			.collect(Collectors.groupingBy(
+				c -> c.domain().name(),
+				() -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
+				toList()
+			));
+
+		// merge logic
+		Set< String > allDomains = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+		allDomains.addAll(eventsByDomain.keySet());
+		allDomains.addAll(combosByDomain.keySet());
+
+		return allDomains.stream()
+			.map(domain -> new com.megatronix.paridhi.dto.response.CategorizedEventAndEventComboResponse(
+				domain,
+				eventsByDomain.getOrDefault(domain, List.of()),
+				combosByDomain.getOrDefault(domain, List.of())
+			))
+			.toList();
 	}
 
 	/*
@@ -481,7 +519,7 @@ public class EventService {
 			.collect(Collectors.groupingBy(
 				e -> e.getDomain().name(),
 				TreeMap::new,
-				Collectors.mapping(EventPublicResponse::fromEvent, Collectors.toList())
+				Collectors.mapping(EventPublicResponse::fromEvent, toList())
 			))
 			.entrySet().stream()
 			.map(entry -> new CategorizedEventResponse(entry.getKey(), entry.getValue()))

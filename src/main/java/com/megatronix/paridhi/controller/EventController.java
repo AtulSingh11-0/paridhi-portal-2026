@@ -3,10 +3,7 @@ package com.megatronix.paridhi.controller;
 import com.megatronix.paridhi.constant.Domain;
 import com.megatronix.paridhi.constant.EventType;
 import com.megatronix.paridhi.dto.request.EventRequest;
-import com.megatronix.paridhi.dto.response.CategorizedEventResponse;
-import com.megatronix.paridhi.dto.response.ErrorResponse;
-import com.megatronix.paridhi.dto.response.EventAdminResponse;
-import com.megatronix.paridhi.dto.response.EventPublicResponse;
+import com.megatronix.paridhi.dto.response.*;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +39,71 @@ public class EventController {
 
 	// Public endpoints
 
+	@GetMapping ( "/combos" )
+	@Operation (
+		summary = "Get all events and event combos categorized by domain",
+		description = "Retrieves a list of domains, each containing its respective events and event combos."
+	)
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events and event combos",
+		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventAndEventComboResponse.class ) ),
+			examples = @ExampleObject ( value = """
+				[
+				  {
+				    "domain": "CODING",
+				    "events": [
+				      {
+				        "id": 4,
+				        "domain": "CODING",
+				        "name": "Code-O-Fiesta",
+				        "type": "MAIN",
+				        "date": 1778839200.000000000,
+				        "description": "Competitive coding event.",
+				        "venue": "Lab 1",
+				        "coordinatorDetails": ["John Doe: 9876543210"],
+				        "posterUrl": "https://ik.imagekit.io/...",
+				        "isTeamEvent": true,
+				        "minPlayers": 1,
+				        "maxPlayers": 4,
+				        "registrationFee": 150.00,
+				        "isRegistrationOpen": true
+				      }
+				    ],
+				    "eventCombos": [
+				      {
+				        "id": 1,
+				        "domain": "CODING",
+				        "name": "Coding Master Combo",
+				        "description": "Access to all coding events",
+				        "posterUrl": "https://ik.imagekit.io/...",
+				        "registrationFee": 400.00,
+				        "isRegistrationOpen": true,
+				        "events": [
+				          {
+				            "id": 4,
+				            "domain": "CODING",
+				            "name": "Code-O-Fiesta",
+				            "type": "MAIN",
+				            "date": 1778839200.000000000,
+				            "description": "Competitive coding event.",
+				            "venue": "Lab 1",
+				            "coordinatorDetails": ["John Doe: 9876543210"],
+				            "posterUrl": "https://ik.imagekit.io/...",
+				            "isTeamEvent": true,
+				            "minPlayers": 1,
+				            "maxPlayers": 4,
+				            "registrationFee": 150.00,
+				            "isRegistrationOpen": true
+				          }
+				        ]
+				      }
+				    ]
+				  }
+				]""" ) ) )
+	public ResponseEntity< List< CategorizedEventAndEventComboResponse > > getAllEventsAndCombos () {
+		return ResponseEntity.ok(eventService.getAllEventsAndCombos());
+	}
+
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ()
 	@Operation (
 		summary = "Get all events",
@@ -77,6 +139,7 @@ public class EventController {
 		return ResponseEntity.ok(eventService.getAllEvents());
 	}
 
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/domains/{domain}" )
 	@Operation (
 		summary = "Get events by domain",
@@ -109,6 +172,7 @@ public class EventController {
 		return ResponseEntity.ok(eventService.getEventsByDomain(domain));
 	}
 
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/status" )
 	@Operation (
 		summary = "Get events by registration status",
@@ -142,6 +206,7 @@ public class EventController {
 		return ResponseEntity.ok(eventService.getEventsByRegistration(isOpen));
 	}
 
+	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/type/{eventType}" )
 	@Operation (
 		summary = "Get events by type",
@@ -240,7 +305,6 @@ public class EventController {
 				  "maxPlayers": 4,
 				  "registrationFee": 150.00
 				}""" ) ) )
-
 	@ApiResponse ( responseCode = "201", description = "Event successfully created",
 		content = @Content ( schema = @Schema ( implementation = EventAdminResponse.class ),
 			examples = @ExampleObject ( value = """
