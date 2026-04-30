@@ -45,13 +45,14 @@ public class EventComboController {
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get all event combos",
-		description = "Retrieves a list of all event combos, grouped by their respective domains."
+		summary = "Get all event combos (Super Admin)",
+		description = "Retrieves all event combos grouped by domain. Each object contains a domain key and a list of combos. Restricted to Super Admin only."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved categorized combos",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventComboResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Categorized combos", value = """
 				[
 				  {
 				    "domain": "CODING",
@@ -68,6 +69,8 @@ public class EventComboController {
 				    ]
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< CategorizedEventComboResponse > > getEventCombos () {
 		return ResponseEntity.ok(eventComboService.getAllEventCombos());
 	}
@@ -75,11 +78,11 @@ public class EventComboController {
 	@GetMapping ( "/{eventComboId}" )
 	@Operation (
 		summary = "Get event combo by ID",
-		description = "Retrieves detailed information for a single event combo by its unique identifier."
+		description = "Retrieves detailed public information for a single event combo by its unique identifier."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved combo details",
 		content = @Content ( schema = @Schema ( implementation = EventComboPublicResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Combo detail", value = """
 				{
 				  "id": 1,
 				  "domain": "CODING",
@@ -88,8 +91,19 @@ public class EventComboController {
 				  "events": [
 				    {
 				      "id": 4,
+				      "domain": "CODING",
 				      "name": "Code-O-Fiesta",
-				      "date": 1778839200.000000000
+				      "type": "MAIN",
+				      "date": 1778839200.000000000,
+				      "description": "Competitive coding event.",
+				      "venue": "Lab 1",
+				      "coordinatorDetails": ["John Doe: 9876543210"],
+				      "posterUrl": "https://ik.imagekit.io/...",
+				      "isTeamEvent": true,
+				      "minPlayers": 1,
+				      "maxPlayers": 4,
+				      "registrationFee": 150.00,
+				      "isRegistrationOpen": true
 				    }
 				  ],
 				  "posterUrl": "https://ik.imagekit.io/...",
@@ -97,7 +111,15 @@ public class EventComboController {
 				  "isRegistrationOpen": true
 				}""" ) ) )
 	@ApiResponse ( responseCode = "404", description = "Combo not found",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ),
+			examples = @ExampleObject ( name = "Not found error", value = """
+				{
+				  "status": 404,
+				  "message": "Event combo not found.",
+				  "error": "Not Found",
+				  "timestamp": 1778839200.000000000,
+				  "path": "/api/event-combos/999"
+				}""" ) ) )
 	public ResponseEntity< EventComboPublicResponse > getEventComboById (
 		@Parameter ( description = "Unique identifier of the combo", example = "1" )
 		@PathVariable ( name = "eventComboId" ) Long id
@@ -107,22 +129,27 @@ public class EventComboController {
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/domains/{domain}" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get combos by domain",
-		description = "Retrieves a list of event combos belonging to a specific domain."
+		summary = "Get combos by domain (Super Admin)",
+		description = "Retrieves a flat list of event combos belonging to a specific domain. Restricted to Super Admin only."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved combos for the domain",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = EventComboPublicResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Combos by domain", value = """
 				[
 				  {
 				    "id": 1,
 				    "domain": "CODING",
 				    "name": "Mega Coding Pack",
+				    "description": "Includes all coding events.",
+				    "posterUrl": "https://ik.imagekit.io/...",
 				    "registrationFee": 250.00,
 				    "isRegistrationOpen": true
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< EventComboPublicResponse > > getEventCombosByDomain (
 		@Parameter ( description = "Domain to filter by", example = "CODING" ) @PathVariable Domain domain
 	) {
@@ -131,13 +158,14 @@ public class EventComboController {
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/status" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get combos by registration status",
-		description = "Retrieves a list of event combos where registration is either open or closed, grouped by domain."
+		summary = "Get combos by registration status (Super Admin)",
+		description = "Retrieves event combos where registration is open or closed, grouped by domain. Restricted to Super Admin only."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved combos by status",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventComboResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Open combos", value = """
 				[
 				  {
 				    "domain": "CODING",
@@ -146,11 +174,16 @@ public class EventComboController {
 				        "id": 1,
 				        "domain": "CODING",
 				        "name": "Mega Coding Pack",
+				        "description": "Includes all coding events.",
+				        "posterUrl": "https://ik.imagekit.io/...",
+				        "registrationFee": 250.00,
 				        "isRegistrationOpen": true
 				      }
 				    ]
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< CategorizedEventComboResponse > > getEventCombosByStatus (
 		@Parameter ( description = "Whether to filter by open or closed registration", example = "true" )
 		@RequestParam ( name = "isOpen" ) boolean isOpen
@@ -165,11 +198,11 @@ public class EventComboController {
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
 		summary = "Create a new event combo",
-		description = "Adds a new event combination package to the portal. Restricted to Admin and Super Admin users."
+		description = "Adds a new event combination package. Must include at least 2 event IDs. Restricted to Admin and Super Admin users."
 	)
 	@io.swagger.v3.oas.annotations.parameters.RequestBody (
 		content = @Content ( schema = @Schema ( implementation = EventComboRequest.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Create combo request", value = """
 				{
 				  "name": "Mega Coding Pack",
 				  "description": "A package containing all major coding events.",
@@ -179,15 +212,41 @@ public class EventComboController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "201", description = "Combo successfully created",
 		content = @Content ( schema = @Schema ( implementation = EventComboAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Created combo", value = """
 				{
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
 				  "description": "A package containing all major coding events.",
 				  "events": [
-				    { "id": 14, "name": "Problematrx", "date": 1778839200.000000000 },
-				    { "id": 15, "name": "CipherSiege", "date": 1778839200.000000000 }
+				    {
+				      "id": 14,
+				      "domain": "CODING",
+				      "name": "Problematrx",
+				      "type": "MAIN",
+				      "date": 1778839200.000000000,
+				      "description": "Algorithm contest.",
+				      "venue": "MSIT Campus",
+				      "isTeamEvent": false,
+				      "minPlayers": 1,
+				      "maxPlayers": 1,
+				      "registrationFee": 100.00,
+				      "isRegistrationOpen": false
+				    },
+				    {
+				      "id": 15,
+				      "domain": "CODING",
+				      "name": "CipherSiege",
+				      "type": "MAIN",
+				      "date": 1778839200.000000000,
+				      "description": "Security coding.",
+				      "venue": "MSIT Campus",
+				      "isTeamEvent": false,
+				      "minPlayers": 1,
+				      "maxPlayers": 1,
+				      "registrationFee": 100.00,
+				      "isRegistrationOpen": false
+				    }
 				  ],
 				  "posterUrl": "https://ik.imagekit.io/...",
 				  "posterFileId": "69e0d6...",
@@ -197,6 +256,19 @@ public class EventComboController {
 				  "updatedAt": 1778839200.000000000,
 				  "createdByUsername": "john@doe.com",
 				  "updatedByUsername": "john@doe.com"
+				}""" ) ) )
+	@ApiResponse ( responseCode = "400", description = "Validation failed — fewer than 2 events or missing fields",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ),
+			examples = @ExampleObject ( name = "Validation error", value = """
+				{
+				  "status": 400,
+				  "message": "A combo must contain at least 2 events",
+				  "error": "Bad Request",
+				  "timestamp": 1778839200.000000000,
+				  "path": "/api/event-combos",
+				  "validationErrors": [
+				    { "field": "eventIds", "message": "A combo must contain at least 2 events" }
+				  ]
 				}""" ) ) )
 	@ApiResponse ( responseCode = "403", description = "Insufficient permissions",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
@@ -217,7 +289,7 @@ public class EventComboController {
 	)
 	@io.swagger.v3.oas.annotations.parameters.RequestBody (
 		content = @Content ( schema = @Schema ( implementation = EventComboRequest.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Update combo request", value = """
 				{
 				  "name": "Updated Mega Pack",
 				  "description": "Updated description for the pack.",
@@ -227,12 +299,28 @@ public class EventComboController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "200", description = "Combo successfully updated",
 		content = @Content ( schema = @Schema ( implementation = EventComboAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Updated combo", value = """
 				{
 				  "id": 2,
+				  "domain": "CODING",
 				  "name": "Updated Mega Pack",
-				  "updatedAt": 1778839200.000000000
+				  "description": "Updated description for the pack.",
+				  "events": [
+				    { "id": 14, "name": "Problematrx" },
+				    { "id": 15, "name": "CipherSiege" },
+				    { "id": 16, "name": "Code Warriors" }
+				  ],
+				  "posterUrl": "https://ik.imagekit.io/...",
+				  "posterFileId": "69e0d6...",
+				  "registrationFee": 300.00,
+				  "isRegistrationOpen": false,
+				  "createdAt": 1778839200.000000000,
+				  "updatedAt": 1778839200.000000000,
+				  "createdByUsername": "john@doe.com",
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Combo not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventComboAdminResponse > updateEventCombo (
 		@Parameter ( description = "Unique identifier of the combo to update", example = "1" )
 		@PathVariable ( name = "eventComboId" ) Long id,
@@ -247,9 +335,11 @@ public class EventComboController {
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
 		summary = "Delete an event combo",
-		description = "Removes an event combo package from the portal. Restricted to Admin and Super Admin users."
+		description = "Permanently removes an event combo package from the portal. Restricted to Admin and Super Admin users."
 	)
-	@ApiResponse ( responseCode = "204", description = "Combo successfully deleted" )
+	@ApiResponse ( responseCode = "204", description = "Combo successfully deleted — no content returned" )
+	@ApiResponse ( responseCode = "404", description = "Combo not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< Void > deleteEventCombo (
 		@Parameter ( description = "Unique identifier of the combo to delete", example = "1" )
 		@PathVariable ( name = "eventComboId" ) Long id,
@@ -268,12 +358,18 @@ public class EventComboController {
 	)
 	@ApiResponse ( responseCode = "200", description = "Combo status successfully toggled",
 		content = @Content ( schema = @Schema ( implementation = EventComboAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Status toggled", value = """
 				{
 				  "id": 2,
+				  "domain": "CODING",
+				  "name": "Mega Coding Pack",
 				  "isRegistrationOpen": true,
-				  "updatedAt": 1778839200.000000000
+				  "createdAt": 1778839200.000000000,
+				  "updatedAt": 1778839200.000000000,
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Combo not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventComboAdminResponse > toggleEventComboRegistrationStatus (
 		@Parameter ( description = "Unique identifier of the combo", example = "1" )
 		@PathVariable ( name = "eventComboId" ) Long id,
@@ -294,12 +390,18 @@ public class EventComboController {
 	)
 	@ApiResponse ( responseCode = "200", description = "Combo poster successfully updated",
 		content = @Content ( schema = @Schema ( implementation = EventComboAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Updated poster", value = """
 				{
 				  "id": 2,
+				  "domain": "CODING",
+				  "name": "Mega Coding Pack",
 				  "posterUrl": "https://ik.imagekit.io/updated_combo.jpg",
-				  "updatedAt": 1778839200.000000000
+				  "posterFileId": "69e0d6...",
+				  "updatedAt": 1778839200.000000000,
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Combo not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventComboAdminResponse > updateEventComboImage (
 		@Parameter ( description = "Unique identifier of the combo", example = "1" )
 		@PathVariable ( name = "eventComboId" ) Long id,
@@ -314,19 +416,26 @@ public class EventComboController {
 	@PostMapping ( "/{eventComboId}/events/{eventId}" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Add an event to combo",
+		summary = "Add an event to a combo",
 		description = "Adds a single event to an existing combo package. Restricted to Admin and Super Admin users."
 	)
 	@ApiResponse ( responseCode = "200", description = "Event successfully added to combo",
 		content = @Content ( schema = @Schema ( implementation = EventComboAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Event added", value = """
 				{
 				  "id": 2,
+				  "domain": "CODING",
+				  "name": "Mega Coding Pack",
 				  "events": [
-				    { "id": 14 }, { "id": 15 }, { "id": 16 }
+				    { "id": 14, "name": "Problematrx" },
+				    { "id": 15, "name": "CipherSiege" },
+				    { "id": 16, "name": "Code Warriors" }
 				  ],
-				  "updatedAt": 1778839200.000000000
+				  "updatedAt": 1778839200.000000000,
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Combo or event not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventComboAdminResponse > addSingleEventToEventCombo (
 		@Parameter ( description = "ID of the combo", example = "1" ) @PathVariable Long eventComboId,
 		@Parameter ( description = "ID of the event to add", example = "5" ) @PathVariable Long eventId,
@@ -339,19 +448,25 @@ public class EventComboController {
 	@DeleteMapping ( "/{eventComboId}/events/{eventId}" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Remove an event from combo",
+		summary = "Remove an event from a combo",
 		description = "Removes a single event from an existing combo package. Restricted to Admin and Super Admin users."
 	)
 	@ApiResponse ( responseCode = "200", description = "Event successfully removed from combo",
 		content = @Content ( schema = @Schema ( implementation = EventComboAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Event removed", value = """
 				{
 				  "id": 2,
+				  "domain": "CODING",
+				  "name": "Mega Coding Pack",
 				  "events": [
-				    { "id": 14 }, { "id": 15 }
+				    { "id": 14, "name": "Problematrx" },
+				    { "id": 15, "name": "CipherSiege" }
 				  ],
-				  "updatedAt": 1778839200.000000000
+				  "updatedAt": 1778839200.000000000,
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Combo or event not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventComboAdminResponse > removeSingleEventFromEventCombo (
 		@Parameter ( description = "ID of the combo", example = "1" ) @PathVariable Long eventComboId,
 		@Parameter ( description = "ID of the event to remove", example = "5" ) @PathVariable Long eventId,

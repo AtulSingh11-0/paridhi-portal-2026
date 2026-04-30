@@ -2,7 +2,6 @@ package com.megatronix.paridhi.service;
 
 import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.Domain;
-import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.constant.Role;
 import com.megatronix.paridhi.dto.request.EventComboRequest;
 import com.megatronix.paridhi.dto.response.CategorizedEventComboResponse;
@@ -18,7 +17,6 @@ import com.megatronix.paridhi.model.EventCombo;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.EventComboRepository;
 import com.megatronix.paridhi.repository.EventRepository;
-import com.megatronix.paridhi.util.LoggingUtil;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,160 +29,114 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
+import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.ACCESS_DENIED;
+import static com.megatronix.paridhi.util.LoggingUtil.*;
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+
 @Service
 @RequiredArgsConstructor
 public class EventComboService {
 
 	private static final Logger log = LoggerFactory.getLogger(EventComboService.class);
+
 	private final EventComboRepository eventComboRepository;
 	private final EventRepository eventRepository;
 	private final ImageStorageService imageStorageService;
 
 	/*
-	 * Public methods - doesn't require authentication
+	 * public methods — doesn't require authentication
 	 */
 
+	@Transactional ( readOnly = true )
 	public List< CategorizedEventComboResponse > getAllEventCombos () {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			"Fetching all event combos"
-		);
-
-		// fetch all event combos from the database
+		// step-1: fetch all event combos from the database
 		List< EventCombo > combos = eventComboRepository.findAll();
 
-		// log the successful retrieval of event combos
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			AppConstant.SUCCESSFULLY_RETRIEVED + combos.size() + " event combos"
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT_COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+		}
 
+		// step-2: group by domain and return
 		return groupEventCombosByDomain(combos);
 	}
 
+	@Transactional ( readOnly = true )
 	public EventComboPublicResponse getEventComboById ( Long eventComboId ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			"Fetching event combo with ID: " + eventComboId
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching event combo with ID: {}", eventComboId);
+		}
 
-		// find the event combo
+		// step-1: fetch the combo — throws ComboNotFoundException if missing
 		var combo = fetchEventComboById(eventComboId, null);
 
-		// log the successful retrieval of the event combo
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			String.format(MessageConstant.SuccessTemplate.FETCHED, "event combo with ID: " + eventComboId + " - " + combo.getEventComboName())
-		);
+		// step-2: audit log the successful retrieval
+		logOperation(log, READ, EVENT_COMBO, null, format(COMBO_RETRIEVED, combo.getEventComboName(), eventComboId));
 
-		// return the combo as a EventComboPublicResponse object
+		// step-3: map to public DTO and return
 		return EventComboPublicResponse.fromCombo(combo);
 	}
 
+	@Transactional ( readOnly = true )
 	public List< EventComboPublicResponse > getEventCombosByDomain ( Domain domain ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			"Fetching event combos for domain: " + domain
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching event combos for domain: {}", domain);
+		}
 
-		// fetch combos by domain from the repository
+		// step-1: fetch combos by domain from the repository
 		List< EventCombo > combos = eventComboRepository.findByDomain(domain);
 
-		// log the successful retrieval of combos
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			String.format(MessageConstant.SuccessTemplate.FETCHED_COUNT, combos.size(), "combos for domain: " + domain)
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT_COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+		}
 
-		// map event combos to EventComboPublicResponse DTOs and return
+		// step-2: map to public DTOs and return
 		return combos.stream()
 			.map(EventComboPublicResponse::fromCombo)
 			.toList();
 	}
 
+	@Transactional ( readOnly = true )
 	public List< CategorizedEventComboResponse > getEventCombosByStatus ( boolean isOpen ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			"Fetching event combos by status: " + ( isOpen ? "OPEN" : "CLOSED" )
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching event combos by registration status: {}", isOpen ? OPEN : CLOSED);
+		}
 
-		// fetch all event combos from the database
+		// step-1: fetch combos filtered by registration open/closed status
 		List< EventCombo > combos = eventComboRepository.findByIsEventComboRegistrationOpen(isOpen);
 
-		// log the successful retrieval of event combos
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT_COMBO,
-			null,
-			AppConstant.SUCCESSFULLY_RETRIEVED + combos.size() + " event combos"
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT_COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+		}
 
+		// step-2: group by domain and return
 		return groupEventCombosByDomain(combos);
 	}
 
 	/*
-	 * Protected methods - require authentication
+	 * protected methods — require authentication
 	 */
 
-	/**
-	 * Creates a new event combo
-	 *
-	 * @param request The combo creation request containing all necessary details
-	 * @param user    The authenticated user creating the combo
-	 *
-	 * @return EventComboPublicResponse object for the newly created combo
-	 *
-	 * @throws EventNotFoundException   if any event in the request doesn't exist
-	 * @throws InvalidDomainException   if events are from different domains
-	 * @throws ForbiddenAccessException if user lacks permission
-	 */
 	@Transactional
 	public EventComboAdminResponse createEventCombo ( EventComboRequest request, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Creating combo: " + request.name()
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to create combo: '{}' for domain: {}", request.name(), request.domain());
+		}
 
-		// validate user access
-		checkUserAccess(user, MessageConstant.Operation.CREATE);
+		// step-1: security — only ADMIN/SUPERADMIN may create combos
+		checkUserAccess(user, COMBO_CREATE);
 
-		// get events from IDs
+		// step-2: fetch the referenced events by their IDs
 		var events = eventRepository.findAllById(request.eventIds());
 
-		// validate if all events exist and are from the same domain
-		validateEvents(request, events, request.domain(), user, MessageConstant.Operation.CREATE);
+		// step-3: validate event existence and domain integrity
+		validateEvents(request, events, request.domain(), user, COMBO_CREATE);
 
-		// create a new combo builder object
+		// step-4: build and persist the new combo entity
 		var combo = EventCombo.builder()
 			.domain(request.domain())
 			.eventComboName(request.name())
@@ -193,377 +145,191 @@ public class EventComboService {
 			.eventComboRegistrationFee(request.registrationFee())
 			.build();
 
-		// save the combo to the database
 		var savedCombo = eventComboRepository.save(combo);
 
-		// log the successful creation of the combo
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.COMBO, savedCombo.getEventComboId()) + " - " + savedCombo.getEventComboName()
-		);
+		// step-5: audit log the successful creation
+		logOperation(log, COMBO_CREATE, EVENT_COMBO, user,
+			format(COMBO_CREATED, savedCombo.getEventComboName(), savedCombo.getEventComboId(), user.getEmail(), user.getUserId()));
 
-		// return the EventComboAdminResponse object
 		return EventComboAdminResponse.fromCombo(savedCombo);
 	}
 
-	/**
-	 * Updates an existing combo with new information
-	 *
-	 * @param id      ID of the combo to update
-	 * @param request The combo update request containing all necessary details
-	 * @param user    The authenticated user updating the combo
-	 *
-	 * @return EventComboPublicResponse object for the updated combo
-	 *
-	 * @throws ComboNotFoundException   if combo with given ID doesn't exist
-	 * @throws EventNotFoundException   if any event in the request doesn't exist
-	 * @throws InvalidDomainException   if events are from different domains
-	 * @throws ForbiddenAccessException if user lacks permission
-	 */
-
 	@Transactional
 	public EventComboAdminResponse updateEventCombo ( Long id, EventComboRequest request, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Updating combo with ID: " + id
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to update combo ID: {}", id);
+		}
 
-		// validate user access
-		checkUserAccess(user, MessageConstant.Operation.UPDATE);
+		// step-1: security — only ADMIN/SUPERADMIN may update combos
+		checkUserAccess(user, COMBO_UPDATE);
 
-		// find the combo
+		// step-2: fetch the existing combo — throws ComboNotFoundException if missing
 		var combo = fetchEventComboById(id, user);
 
-		// get events from IDs
+		// step-3: fetch the referenced events by their IDs
 		var events = eventRepository.findAllById(request.eventIds());
 
-		// validate if all events exist
-		validateEvents(request, events, request.domain(), user, MessageConstant.Operation.UPDATE);
+		// step-4: validate event existence and domain integrity
+		validateEvents(request, events, request.domain(), user, COMBO_UPDATE);
 
-		// update the combo
+		// step-5: apply all updates to the combo fields
 		combo.setEventComboName(request.name());
 		combo.setEventComboDescription(request.description());
 		combo.setDomain(request.domain());
 		combo.setEventComboRegistrationFee(request.registrationFee());
 
-		// clear existing events and set new ones (MUTATE the existing Hibernate PersistentSet)
+		// step-6: mutate the existing Hibernate PersistentSet in-place to avoid orphan issues
 		combo.getEvents().clear();
 		combo.getEvents().addAll(events);
 
-		// save and return the combo
 		var updatedCombo = eventComboRepository.save(combo);
 
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			String.format(MessageConstant.SuccessTemplate.UPDATED, AppConstant.COMBO, id) + " - " + updatedCombo.getEventComboName()
-		);
+		// step-7: audit log the successful update
+		logOperation(log, COMBO_UPDATE, EVENT_COMBO, user,
+			format(COMBO_UPDATED, updatedCombo.getEventComboName(), id, user.getEmail(), user.getUserId()));
 
-		// return the EventComboAdminResponse object
 		return EventComboAdminResponse.fromCombo(updatedCombo);
 	}
 
-	/**
-	 * Updates the image associated with a combo
-	 *
-	 * @param id   ID of the combo to update
-	 * @param file The image file to upload
-	 * @param user The authenticated user updating the combo image
-	 *
-	 * @return EventComboPublicResponse object for the updated combo
-	 *
-	 * @throws ComboNotFoundException   if combo with given ID doesn't exist
-	 * @throws ForbiddenAccessException if user lacks permission
-	 */
 	@Transactional
 	public EventComboAdminResponse updateEventComboImage ( Long id, MultipartFile file, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_IMAGE,
-			user,
-			"Updating image for combo with ID: " + id + " - File: " + file.getOriginalFilename() + " (" + file.getSize() + " bytes)"
-		);
-
-		// validate user access
-		checkUserAccess(user, "update image of");
-
-		// get combo by ID
-		var existingCombo = fetchEventComboById(id, user);
-
-		// delete old image if it exists
-		if ( existingCombo.getEventComboPosterUrl() != null && existingCombo.getEventComboId() != null ) {
-			try {
-				imageStorageService.deleteFile(existingCombo.getEventComboPosterFileId());
-			} catch ( Exception e ) {
-				// log but continue - failure to delete old image shouldn't stop upload of new image
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.DELETE,
-					AppConstant.IMAGE_STORAGE,
-					user,
-					"Failed to delete previous image for combo ID: " + id + " - Continuing with upload - Error: " + e.getMessage(),
-					e
-				);
-			}
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to update image for combo ID: {} — file: '{}' ({} bytes)",
+				id, file.getOriginalFilename(), file.getSize());
 		}
 
-		ImageUploadResult imageDetails = imageStorageService.uploadFile(file, AppConstant.COMBO);
+		// step-1: security — only ADMIN/SUPERADMIN may update combo images
+		checkUserAccess(user, COMBO_IMAGE_UPDATE);
 
-		// update combo image fields
+		// step-2: fetch the existing combo
+		var existingCombo = fetchEventComboById(id, user);
+
+		// step-3: best-effort cleanup of the poster image (non-fatal)
+		deleteOptionalComboImage(existingCombo, id, user, COMBO_IMAGE_UPDATE);
+
+		// step-4: upload new image and persist updated URLs
+		ImageUploadResult imageDetails = imageStorageService.uploadFile(file, COMBO);
 		existingCombo.setEventComboPosterUrl(imageDetails.fileUrl());
 		existingCombo.setEventComboPosterFileId(imageDetails.fileId());
 
-		// save updated combo
 		var updatedCombo = eventComboRepository.save(existingCombo);
 
-		// log the successful image update
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_IMAGE,
-			user,
-			"Successfully updated image for combo ID: " + id + " - New image public ID: " + imageDetails.fileId()
-		);
+		// step-5: audit log the successful image update
+		logOperation(log, COMBO_IMAGE_UPDATE, COMBO_IMAGE, user,
+			format(COMBO_IMAGE_UPDATED, updatedCombo.getEventComboName(), id, imageDetails.fileId(), user.getEmail(), user.getUserId()));
 
-		// return the updated combo as EventComboAdminResponse object
 		return EventComboAdminResponse.fromCombo(updatedCombo);
 	}
 
-	/**
-	 * Deletes a combo and its associated image
-	 *
-	 * @param id   ID of the combo to delete
-	 * @param user The authenticated user deleting the combo
-	 *
-	 * @throws ComboNotFoundException   if combo with given ID doesn't exist
-	 * @throws ForbiddenAccessException if user lacks permission
-	 */
 	@Transactional
 	public void deleteEventCombo ( Long id, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.DELETE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Deleting combo with ID: " + id
-		);
-
-		// validate user access
-		checkUserAccess(user, MessageConstant.Operation.DELETE);
-
-		// find the combo
-		var existingCombo = fetchEventComboById(id, user);
-
-		// delete image if it exists
-		if ( existingCombo.getEventComboPosterUrl() != null && existingCombo.getEventComboPosterFileId() != null ) {
-			try {
-				imageStorageService.deleteFile(existingCombo.getEventComboPosterFileId());
-			} catch ( Exception e ) {
-				// log but continue - failure to delete image shouldn't stop combo deletion
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.DELETE,
-					AppConstant.IMAGE_STORAGE,
-					user,
-					"Failed to delete image for combo ID: " + id + " - Error: " + e.getMessage(),
-					e
-				);
-			}
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to delete combo ID: {}", id);
 		}
 
-		// delete the combo
-		eventComboRepository.deleteById(id);
+		// step-1: security — only ADMIN/SUPERADMIN may delete combos
+		checkUserAccess(user, COMBO_DELETE);
 
-		// log the successful deletion of the combo
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.DELETE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.COMBO, id) + " - " + existingCombo.getEventComboName()
-		);
+		// step-2: fetch the existing combo — throws ComboNotFoundException if missing
+		var existingCombo = fetchEventComboById(id, user);
+
+		// step-3: best-effort cleanup of the poster image (non-fatal)
+		deleteOptionalComboImage(existingCombo, id, user, COMBO_DELETE);
+
+		// step-4: delete the combo from the database and audit log
+		eventComboRepository.deleteById(id);
+		logOperation(log, COMBO_DELETE, EVENT_COMBO, user,
+			format(COMBO_DELETED_LOG, existingCombo.getEventComboName(), id, user.getEmail(), user.getUserId()));
 	}
 
-	/**
-	 * Toggles the registration status of a combo between open and closed
-	 *
-	 * @param id   ID of the combo to update
-	 * @param user The authenticated user toggling the status
-	 *
-	 * @return EventComboPublicResponse object for the updated combo
-	 *
-	 * @throws ComboNotFoundException   if combo with given ID doesn't exist
-	 * @throws ForbiddenAccessException if user lacks permission
-	 */
 	@Transactional
 	public EventComboAdminResponse toggleEventComboRegistrationStatus ( Long id, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Toggling registration status for combo with ID: " + id
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to toggle registration status for combo ID: {}", id);
+		}
 
-		// validate user access
-		checkUserAccess(user, "toggle registration status of");
+		// step-1: security — only ADMIN/SUPERADMIN may toggle combo registration
+		checkUserAccess(user, COMBO_TOGGLE_REGISTRATION);
 
-		// find the combo
+		// step-2: fetch the existing combo
 		var combo = fetchEventComboById(id, user);
 
-		// get current status for logging
-		boolean currentStatus = combo.isEventComboRegistrationOpen();
-		boolean newStatus = ! currentStatus;
-
-		// toggle the status
-		combo.setEventComboRegistrationOpen(newStatus);
-
-		// save and return the combo
+		// step-3: flip registration status and persist
+		boolean previousStatus = combo.isEventComboRegistrationOpen();
+		combo.setEventComboRegistrationOpen(! previousStatus);
 		var updatedCombo = eventComboRepository.save(combo);
 
-		// log the successful status update
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			String.format(MessageConstant.SuccessTemplate.STATUS_CHANGED, "registration status for combo ID: " + id,
-				( currentStatus ? AppConstant.OPEN : AppConstant.CLOSED ), ( newStatus ? AppConstant.OPEN :
-					AppConstant.CLOSED )) + " - Name: " + updatedCombo.getEventComboName()
-		);
+		// step-4: audit log the toggle result (old -> new status)
+		logOperation(log, COMBO_TOGGLE_REGISTRATION, EVENT_COMBO, user,
+			format(COMBO_REGISTRATION_TOGGLED,
+				updatedCombo.getEventComboName(), id,
+				previousStatus ? OPEN : CLOSED,
+				! previousStatus ? OPEN : CLOSED,
+				user.getEmail(), user.getUserId()));
 
-		// return the updated combo as EventComboAdminResponse object
 		return EventComboAdminResponse.fromCombo(updatedCombo);
 	}
 
-	/**
-	 * Adds a single event to an existing combo
-	 *
-	 * @param eventComboId ID of the combo
-	 * @param eventId      ID of the event to add
-	 * @param user         The authenticated user performing the action
-	 *
-	 * @return EventComboAdminResponse object for the updated combo
-	 */
 	@Transactional
 	public EventComboAdminResponse addSingleEventToEventCombo ( Long eventComboId, Long eventId, User user ) {
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Adding event ID: " + eventId + " to combo ID: " + eventComboId
-		);
-
-		checkUserAccess(user, MessageConstant.Operation.UPDATE);
-
-		var combo = fetchEventComboById(eventComboId, user);
-
-		var event = eventRepository.findById(eventId)
-			.orElseThrow(
-				() -> new EventNotFoundException(
-					String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.EVENT)
-				)
-			);
-
-		// 1. Business Rule: Check Domain Integrity
-		if ( ! event.getDomain().equals(combo.getDomain()) ) {
-			LoggingUtil.logError(
-				log,
-				MessageConstant.Operation.UPDATE,
-				AppConstant.COMBO_SERVICE,
-				user,
-				"Cannot add event. Domain mismatch.", null
-			);
-			throw new InvalidDomainException("Cannot add event to combo. The event domain (" + event.getDomain() + ") does not match the combo domain (" + combo.getDomain() + ").");
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to add event ID: {} to combo ID: {}", eventId, eventComboId);
 		}
 
-		// 2. Add the event using your entity helper method!
-		combo.addEvent(event);
+		// step-1: security — only ADMIN/SUPERADMIN may mutate combo membership
+		checkUserAccess(user, COMBO_ADD_EVENT);
 
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Successfully added event ID: " + eventId + " to combo: " + combo.getEventComboName()
-		);
+		// step-2: fetch the combo and the event
+		var combo = fetchEventComboById(eventComboId, user);
+		var event = fetchEventById(eventId, user);
+
+		// step-3: guard — enforce domain integrity before adding the event
+		if ( ! event.getDomain().equals(combo.getDomain()) ) {
+			logError(log, COMBO_ADD_EVENT, EVENT_COMBO, user,
+				format(COMBO_DOMAIN_MISMATCH, event.getDomain(), combo.getDomain(), eventId, eventComboId), null);
+			throw new InvalidDomainException(
+				format(INVALID_DOMAIN, combo.getDomain()) + " (event domain: " + event.getDomain() + ")");
+		}
+
+		// step-4: add the event using the entity helper method and audit log
+		combo.addEvent(event);
+		logOperation(log, COMBO_ADD_EVENT, EVENT_COMBO, user,
+			format(COMBO_EVENT_ADDED, event.getEventName(), eventId, combo.getEventComboName(), eventComboId, user.getEmail(), user.getUserId()));
 
 		return EventComboAdminResponse.fromCombo(combo);
 	}
 
-	/**
-	 * Removes a single event from an existing combo
-	 *
-	 * @param eventComboId ID of the combo
-	 * @param eventId      ID of the event to remove
-	 * @param user         The authenticated user performing the action
-	 *
-	 * @return EventComboAdminResponse object for the updated combo
-	 */
 	@Transactional
 	public EventComboAdminResponse removeSingleEventFromEventCombo ( Long eventComboId, Long eventId, User user ) {
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Removing event ID: " + eventId + " from combo ID: " + eventComboId
-		);
-
-		checkUserAccess(user, MessageConstant.Operation.UPDATE);
-
-		var combo = fetchEventComboById(eventComboId, user);
-
-		var event = eventRepository.findById(eventId)
-			.orElseThrow(
-				() -> new EventNotFoundException(
-					String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.EVENT)
-				)
-			);
-
-		// 1. Business Rule: Enforce minimum combo size
-		if ( combo.getEvents().size() <= 2 ) {
-			LoggingUtil.logError(
-				log,
-				MessageConstant.Operation.UPDATE,
-				AppConstant.COMBO_SERVICE,
-				user,
-				"Cannot remove event. Combo must have at least 2 events.",
-				null
-			);
-			throw new IllegalArgumentException("A combo must contain at least 2 events. You cannot remove this event without adding another one first.");
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to remove event ID: {} from combo ID: {}", eventId, eventComboId);
 		}
 
-		// 2. Remove the event using your entity helper method!
-		combo.removeEvent(event);
+		// step-1: security — only ADMIN/SUPERADMIN may mutate combo membership
+		checkUserAccess(user, COMBO_REMOVE_EVENT);
 
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.COMBO_SERVICE,
-			user,
-			"Successfully removed event ID: " + eventId + " from combo: " + combo.getEventComboName()
-		);
+		// step-2: fetch the combo and the event
+		var combo = fetchEventComboById(eventComboId, user);
+		var event = fetchEventById(eventId, user);
+
+		// step-3: guard — enforce minimum combo size (must have at least 2 events)
+		if ( combo.getEvents().size() <= 2 ) {
+			logError(log, COMBO_REMOVE_EVENT, EVENT_COMBO, user,
+				format(COMBO_MIN_SIZE_VIOLATED, eventId, eventComboId), null);
+			throw new IllegalArgumentException(
+				"A combo must contain at least 2 events. You cannot remove this event without adding another one first.");
+		}
+
+		// step-4: remove the event using the entity helper method and audit log
+		combo.removeEvent(event);
+		logOperation(log, COMBO_REMOVE_EVENT, EVENT_COMBO, user,
+			format(COMBO_EVENT_REMOVED, event.getEventName(), eventId, combo.getEventComboName(), eventComboId, user.getEmail(), user.getUserId()));
 
 		return EventComboAdminResponse.fromCombo(combo);
 	}
 
 	/*
-	 * private methods - used internally only
+	 * private methods — used internally only
 	 */
 
 	private List< CategorizedEventComboResponse > groupEventCombosByDomain ( List< EventCombo > combos ) {
@@ -571,7 +337,7 @@ public class EventComboService {
 			.collect(Collectors.groupingBy(
 				e -> e.getDomain().name(),
 				TreeMap::new,
-				Collectors.mapping(EventComboPublicResponse::fromCombo, Collectors.toList())
+				Collectors.mapping(EventComboPublicResponse::fromCombo, toList())
 			))
 			.entrySet().stream()
 			.map(entry -> new CategorizedEventComboResponse(entry.getKey(), entry.getValue()))
@@ -581,101 +347,67 @@ public class EventComboService {
 	private EventCombo fetchEventComboById ( Long id, User user ) {
 		return eventComboRepository.findById(id)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.READ,
-					AppConstant.COMBO_SERVICE,
-					user,
-					String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO),
-					null
-				);
-				return new ComboNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.COMBO));
+				logError(log, READ, EVENT_COMBO, user, format(COMBO_NOT_FOUND, id), null);
+				return new ComboNotFoundException(format(NOT_FOUND, COMBO));
 			});
 	}
 
-	/**
-	 * Validates that the user has appropriate permissions to perform operations on
-	 * combos
-	 *
-	 * @param user       The user attempting the operation
-	 * @param methodType The operation type being performed
-	 *
-	 * @throws ForbiddenAccessException if the user lacks appropriate permissions
-	 */
-	private void checkUserAccess ( User user, String methodType ) {
-		// check if user is null
-		if ( user == null ) {
-			LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_DENIED,
-				null,
-				AppConstant.FAILED,
-				String.format(MessageConstant.ErrorTemplate.AUTHENTICATION_REQUIRED, methodType + " " + AppConstant.COMBO)
-			);
-			throw new ForbiddenAccessException(MessageConstant.UserMessage.ACCESS_DENIED);
-		}
-
-		// check if user has ROLE_USER
-		if ( user.getRole().equals(Role.ROLE_USER) ) {
-			LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_DENIED,
-				user,
-				AppConstant.FAILED,
-				String.format(MessageConstant.ErrorTemplate.NOT_AUTHORIZED, methodType + " " + AppConstant.COMBO)
-			);
-			throw new ForbiddenAccessException(MessageConstant.UserMessage.ACCESS_DENIED);
-		}
-
-		// log the successful authorization
-		LoggingUtil.logSecurity(
-			log,
-			AppConstant.ACCESS_GRANTED,
-			user,
-			AppConstant.SUCCESS,
-			String.format(MessageConstant.SuccessTemplate.AUTHORIZED, methodType + " " + AppConstant.COMBO)
-		);
+	private Event fetchEventById ( Long eventId, User user ) {
+		return eventRepository.findById(eventId)
+			.orElseThrow(() -> {
+				logError(log, READ, EVENT_COMBO, user, format(NOT_FOUND_LOG, EVENT, "ID", eventId), null);
+				return new EventNotFoundException(format(NOT_FOUND, EVENT));
+			});
 	}
 
-	/**
-	 * Validates that all events in the request exist and belong to the same domain
-	 *
-	 * @param request   The combo creation request containing event IDs
-	 * @param events    List of events fetched from the database
-	 * @param domain    The domain to check against
-	 * @param user      The authenticated user creating the combo
-	 * @param operation The operation being performed (create/update)
-	 *
-	 * @throws EventNotFoundException if any event doesn't exist
-	 * @throws InvalidDomainException if events are from different domains
-	 */
-	private void validateEvents ( EventComboRequest request, List< Event > events, Domain domain, User user, String operation ) {
-		// check if all events exist
-		if ( events.size() != request.eventIds().size() ) {
-			LoggingUtil.logError(
-				log,
-				MessageConstant.Operation.CREATE,
-				AppConstant.COMBO_SERVICE,
-				user,
-				"One or more events not found for combo creation", null
-			);
-			throw new EventNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.EVENT));
+	private void checkUserAccess ( User user, String operation ) {
+		// step-1: reject unauthenticated requests outright
+		if ( user == null ) {
+			logSecurity(log, AppConstant.ACCESS_DENIED, null, FAILED,
+				format(AUTHENTICATION_REQUIRED, operation + " " + EVENT_COMBO));
+			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}
 
-		// check if all events belong to the same domain
+		// step-2: reject regular users — only ADMIN and above may perform combo mutations
+		if ( user.getRole().equals(Role.ROLE_USER) ) {
+			logSecurity(log, AppConstant.ACCESS_DENIED, user, FAILED,
+				format(NOT_AUTHORIZED, operation + " " + EVENT_COMBO));
+			throw new ForbiddenAccessException(ACCESS_DENIED);
+		}
+
+		// step-3: access is granted — log for observability at debug level
+		if ( log.isDebugEnabled() ) {
+			log.debug("Access granted to user: {} (ID: {}) for operation: {}", user.getEmail(), user.getUserId(), operation);
+		}
+	}
+
+	private void validateEvents ( EventComboRequest request, List< Event > events, Domain domain, User user, String operation ) {
+		// step-1: verify all requested event IDs resolved to actual entities
+		if ( events.size() != request.eventIds().size() ) {
+			logError(log, operation, EVENT_COMBO, user,
+				format("One or more of the %d requested event IDs were not found.", request.eventIds().size()), null);
+			throw new EventNotFoundException(format(NOT_FOUND, EVENT));
+		}
+
+		// step-2: verify all events belong to the specified domain
 		boolean eventsAreFromSameDomain = events.stream()
 			.allMatch(event -> event.getDomain().equals(domain));
 
 		if ( ! eventsAreFromSameDomain ) {
-			LoggingUtil.logError(
-				log,
-				operation,
-				AppConstant.COMBO_SERVICE,
-				user,
-				"All events must belong to the same domain: " + domain,
-				null
-			);
-			throw new InvalidDomainException(String.format(MessageConstant.ErrorTemplate.INVALID_DOMAIN, domain));
+			logError(log, operation, EVENT_COMBO, user,
+				format("All events must belong to the same domain: %s", domain), null);
+			throw new InvalidDomainException(format(INVALID_DOMAIN, domain));
+		}
+	}
+
+	private void deleteOptionalComboImage ( EventCombo combo, Long id, User user, String operation ) {
+		if ( combo.getEventComboPosterUrl() != null && combo.getEventComboPosterFileId() != null ) {
+			try {
+				imageStorageService.deleteFile(combo.getEventComboPosterFileId());
+			} catch ( Exception e ) {
+				logError(log, operation, IMAGE_STORAGE, user,
+					format(COMBO_IMAGE_DELETE_FAILED, id, e.getMessage()), e);
+			}
 		}
 	}
 }

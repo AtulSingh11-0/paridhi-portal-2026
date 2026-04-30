@@ -2,10 +2,7 @@ package com.megatronix.paridhi.service;
 
 import com.megatronix.paridhi.constant.*;
 import com.megatronix.paridhi.dto.request.EventRequest;
-import com.megatronix.paridhi.dto.response.CategorizedEventResponse;
-import com.megatronix.paridhi.dto.response.EventAdminResponse;
-import com.megatronix.paridhi.dto.response.EventPublicResponse;
-import com.megatronix.paridhi.dto.response.ImageUploadResult;
+import com.megatronix.paridhi.dto.response.*;
 import com.megatronix.paridhi.exception.EventNotFoundException;
 import com.megatronix.paridhi.exception.ForbiddenAccessException;
 import com.megatronix.paridhi.model.Event;
@@ -15,24 +12,29 @@ import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.EventComboRepository;
 import com.megatronix.paridhi.repository.EventRepository;
 import com.megatronix.paridhi.repository.TeamRepository;
-import com.megatronix.paridhi.util.LoggingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
+import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
+import static com.megatronix.paridhi.util.LoggingUtil.*;
+import static java.lang.String.CASE_INSENSITIVE_ORDER;
+import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
 @Service
 public class EventService {
 
 	private static final Logger log = LoggerFactory.getLogger(EventService.class);
+
 	private final TeamRepository teamRepository;
 	private final EventRepository eventRepository;
 	private final EventComboRepository eventComboRepository;
@@ -50,35 +52,45 @@ public class EventService {
 		this.imageStorageService = imageStorageService;
 	}
 
-	public List< com.megatronix.paridhi.dto.response.CategorizedEventAndEventComboResponse > getAllEventsAndCombos () {
-		// fetch all events and event combos
+	/*
+	 * public methods — doesn't require authentication
+	 */
+
+	@Transactional ( readOnly = true )
+	public List< CategorizedEventAndEventComboResponse > getAllEventsAndCombos () {
+		// step-1: fetch all events and combos from the database
 		List< Event > events = eventRepository.findAll();
 		List< EventCombo > combos = eventComboRepository.findAll();
 
-		// Create the map of domains
-		java.util.Map< String, List< EventPublicResponse > > eventsByDomain = events.stream()
+		if ( log.isDebugEnabled() ) {
+			log.debug("getAllEventsAndCombos: fetched {} events and {} combos", events.size(), combos.size());
+		}
+
+		// step-2: group events by domain using a case-insensitive sorted map
+		Map< String, List< EventPublicResponse > > eventsByDomain = events.stream()
 			.map(EventPublicResponse::fromEvent)
 			.collect(Collectors.groupingBy(
 				e -> e.domain().name(),
-				() -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
+				() -> new TreeMap<>(CASE_INSENSITIVE_ORDER),
 				toList()
 			));
 
-		java.util.Map< String, List< com.megatronix.paridhi.dto.response.EventComboPublicResponse > > combosByDomain = combos.stream()
-			.map(com.megatronix.paridhi.dto.response.EventComboPublicResponse::fromCombo)
+		// step-3: group combos by domain using a case-insensitive sorted map
+		Map< String, List< EventComboPublicResponse > > combosByDomain = combos.stream()
+			.map(EventComboPublicResponse::fromCombo)
 			.collect(Collectors.groupingBy(
 				c -> c.domain().name(),
-				() -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
+				() -> new TreeMap<>(CASE_INSENSITIVE_ORDER),
 				toList()
 			));
 
-		// merge logic
-		Set< String > allDomains = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+		// step-4: merge all domain keys and build unified response
+		Set< String > allDomains = new TreeSet<>(CASE_INSENSITIVE_ORDER);
 		allDomains.addAll(eventsByDomain.keySet());
 		allDomains.addAll(combosByDomain.keySet());
 
 		return allDomains.stream()
-			.map(domain -> new com.megatronix.paridhi.dto.response.CategorizedEventAndEventComboResponse(
+			.map(domain -> new CategorizedEventAndEventComboResponse(
 				domain,
 				eventsByDomain.getOrDefault(domain, List.of()),
 				combosByDomain.getOrDefault(domain, List.of())
@@ -86,169 +98,112 @@ public class EventService {
 			.toList();
 	}
 
-	/*
-	 * public methods - doesn't require authentication
-	 */
-
+	@Transactional ( readOnly = true )
 	public List< CategorizedEventResponse > getAllEvents () {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			"Fetching all events"
-		);
-
-		// fetch all events from the database
+		// step-1: fetch all events from the database
 		List< Event > events = eventRepository.findAll();
 
-		// log the successful retrieval of events
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + AppConstant.EVENT
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT, null, format(EVENTS_RETRIEVED, events.size()));
+		}
 
+		// step-2: group events by domain and return
 		return groupEventsByDomain(events);
 	}
 
+	@Transactional ( readOnly = true )
 	public List< EventPublicResponse > getEventsByDomain ( Domain domain ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			"Fetching events by domain: " + domain
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching events for domain: {}", domain);
+		}
 
-		// fetch events by domain from the database
+		// step-1: fetch events by domain from the database
 		List< Event > events = eventRepository.findByDomain(domain);
 
-		// log the successful retrieval of events
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + " events for domain: " + domain
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT, null, format(EVENTS_RETRIEVED, events.size()));
+		}
 
-		// map events to EventPublicResponse DTOs and return
+		// step-2: map to public DTOs and return
 		return events.stream()
 			.map(EventPublicResponse::fromEvent)
 			.toList();
 	}
 
-	public List< CategorizedEventResponse > getEventsByRegistration ( boolean isEventRegistrationOpen ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			"Fetching events by registration status: " + ( isEventRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED )
-		);
+	@Transactional ( readOnly = true )
+	public List< CategorizedEventResponse > getEventsByRegistration ( boolean isEventRegistrationOpen, User user ) {
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching events by registration status: {}", isEventRegistrationOpen ? OPEN : CLOSED);
+		}
 
-		// fetch events by registration status from the database
+		// step-1: fetch events filtered by registration status
 		List< Event > events = eventRepository.findByIsEventRegistrationOpen(isEventRegistrationOpen);
 
-		// log the successful retrieval of events
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + " events with registration status: " +
-				( isEventRegistrationOpen ? AppConstant.OPEN : AppConstant.CLOSED )
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT, user, format(EVENTS_RETRIEVED, events.size()));
+		}
 
+		// step-2: group and return
 		return groupEventsByDomain(events);
 	}
 
+	@Transactional ( readOnly = true )
 	public List< CategorizedEventResponse > getEventsByType ( EventType eventType ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			"Fetching events by type: " + eventType
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching events by type: {}", eventType);
+		}
 
-		// fetch events by type from the database
+		// step-1: fetch events filtered by type
 		List< Event > events = eventRepository.findByEventType(eventType);
 
-		// log the successful retrieval of events
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			AppConstant.SUCCESSFULLY_RETRIEVED + events.size() + " events of type: " + eventType
-		);
+		if ( log.isInfoEnabled() ) {
+			logOperation(log, READ, EVENT, null, format(EVENTS_RETRIEVED, events.size()));
+		}
 
+		// step-2: group and return
 		return groupEventsByDomain(events);
 	}
 
+	@Transactional ( readOnly = true )
 	public EventPublicResponse getEventById ( Long eventId ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			"Fetching event with ID: " + eventId
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Fetching event with ID: {}", eventId);
+		}
 
-		// find event by ID
+		// step-1: fetch event by ID — throws EventNotFoundException if missing
 		var event = fetchEventById(eventId, null);
 
-		// log the successful retrieval of the event
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			AppConstant.EVENT,
-			null,
-			"Successfully retrieved event ID: " + eventId + " - " + event.getEventName()
-		);
+		// step-2: audit log the successful retrieval
+		logOperation(log, READ, EVENT, null, format(EVENT_RETRIEVED, event.getEventName(), eventId));
 
-		// map event to EventPublicResponse DTO and return
+		// step-3: map and return the public DTO
 		return EventPublicResponse.fromEvent(event);
 	}
 
 	/*
-	 * protected methods - requires authentication
+	 * protected methods — requires authentication
 	 */
 
 	@Transactional
 	public EventAdminResponse createEvent ( EventRequest request, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			AppConstant.EVENT,
-			user,
-			"Creating new event: " + request.name() + " for domain: " + request.domain()
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to create event: '{}' for domain: {}", request.name(), request.domain());
+		}
 
-		// validate user access
-		checkUserAccess(user, MessageConstant.Operation.CREATE);
+		// step-1: security — only ADMIN/MEGATRON may create events
+		checkUserAccess(user, EVENT_CREATE);
 
-		// validate the min and max player limit for that event
+		// step-2: validate player count bounds before persisting
 		validatePlayerLimits(request);
 
-		// create event builder object
+		// step-3: build and persist the event entity
 		var event = Event.builder()
 			.domain(request.domain())
 			.eventName(request.name())
 			.eventType(request.type())
 			.eventDate(request.date())
 			.eventDescription(request.description())
-			.eventVenue(( request.venue() ))
+			.eventVenue(request.venue())
 			.eventCoordinatorDetails(request.coordinatorDetails())
 			.eventRuleBookUrl(request.ruleBookUrl())
 			.isTeamEvent(request.isTeamEvent())
@@ -257,43 +212,31 @@ public class EventService {
 			.eventRegistrationFee(request.registrationFee())
 			.build();
 
-		// save event to database
 		var savedEvent = eventRepository.save(event);
 
-		// log the successful creation of the event
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			AppConstant.EVENT,
-			user,
-			"Successfully created event ID: " + savedEvent.getEventId() + " - " + savedEvent.getEventName()
-		);
+		// step-4: audit log the successful creation
+		logOperation(log, EVENT_CREATE, EVENT, user,
+			format(EVENT_CREATED, savedEvent.getEventName(), savedEvent.getEventId(), user.getEmail(), user.getUserId()));
 
-		// return EventAdminResponse object
 		return EventAdminResponse.fromEvent(savedEvent);
 	}
 
 	@Transactional
 	public EventAdminResponse updateEvent ( Long eventId, EventRequest request, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.EVENT,
-			user,
-			"Updating event with ID: " + eventId
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to update event ID: {}", eventId);
+		}
 
-		// validate user access
-		checkUserAccess(user, MessageConstant.Operation.UPDATE);
+		// step-1: security — only ADMIN/MEGATRON may update events
+		checkUserAccess(user, EVENT_UPDATE);
 
-		// validate the min and max player limit for that event
+		// step-2: validate player count bounds before applying update
 		validatePlayerLimits(request);
 
-		// find event by ID
+		// step-3: fetch the existing event — throws EventNotFoundException if missing
 		var existingEvent = fetchEventById(eventId, user);
 
-		// update event fields
+		// step-4: apply updates to all event fields
 		existingEvent.setDomain(request.domain());
 		existingEvent.setEventName(request.name());
 		existingEvent.setEventType(request.type());
@@ -306,207 +249,105 @@ public class EventService {
 		existingEvent.setEventMaxPlayers(request.maxPlayers());
 		existingEvent.setEventRegistrationFee(request.registrationFee());
 
-		// save updated event to database
 		var updatedEvent = eventRepository.save(existingEvent);
 
-		// log the successful update of the event
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.EVENT,
-			user,
-			"Successfully updated event ID: " + eventId + " - " + updatedEvent.getEventName()
-		);
+		// step-5: audit log the successful update
+		logOperation(log, EVENT_UPDATE, EVENT, user,
+			format(EVENT_UPDATED, updatedEvent.getEventName(), eventId, user.getEmail(), user.getUserId()));
 
-		// return EventAdminResponse object
 		return EventAdminResponse.fromEvent(updatedEvent);
 	}
 
 	@Transactional
 	public EventAdminResponse updateEventImage ( Long eventId, MultipartFile file, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.EVENT_IMAGE,
-			user,
-			"Updating image for event with ID: " + eventId + " - File: " + file.getOriginalFilename() + " (" + file.getSize() + " bytes)"
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to update image for event ID: {} — file: '{}' ({} bytes)",
+				eventId, file.getOriginalFilename(), file.getSize());
+		}
 
-		// validate user access
-		checkUserAccess(user, "update image of");
+		// step-1: security — only ADMIN/SUPERADMIN may update event images
+		checkUserAccess(user, EVENT_IMAGE_UPDATE);
 
-		// find event by ID
+		// step-2: fetch the existing event
 		var existingEvent = fetchEventById(eventId, user);
 
-		// clean up previous image if it exists
+		// step-3: best-effort cleanup of the previous poster image (non-fatal)
 		if ( existingEvent.getEventPosterUrl() != null && existingEvent.getEventPosterFileId() != null ) {
 			try {
 				imageStorageService.deleteFile(existingEvent.getEventPosterFileId());
 			} catch ( Exception e ) {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.DELETE,
-					AppConstant.IMAGE_STORAGE,
-					user,
-					"Failed to delete previous image for event ID: " + eventId + " - Error: " + e.getMessage(),
-					e
-				);
-				// continue with image update even if cleanup fails
+				logError(log, EVENT_IMAGE_UPDATE, IMAGE_STORAGE, user,
+					format(EVENT_IMAGE_DELETE_FAILED, eventId, e.getMessage()), e);
+				// continue with image update even if old image cleanup fails
 			}
 		}
 
+		// step-4: upload the new image and persist the updated URLs
 		ImageUploadResult imageDetails = imageStorageService.uploadFile(file, "event");
-
-		// update event image URL
 		existingEvent.setEventPosterUrl(imageDetails.fileUrl());
 		existingEvent.setEventPosterFileId(imageDetails.fileId());
 
-		// save updated event to database
 		var updatedEvent = eventRepository.save(existingEvent);
 
-		// log the successful update of the event image
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.EVENT_IMAGE,
-			user,
-			"Successfully updated image for event ID: " + eventId +
-				" - New image file ID: " + imageDetails.fileId()
-		);
+		// step-5: audit log the successful image update
+		logOperation(log, EVENT_IMAGE_UPDATE, EVENT_IMAGE, user,
+			format(EVENT_IMAGE_UPDATED, updatedEvent.getEventName(), eventId, imageDetails.fileId(), user.getEmail(), user.getUserId()));
 
-		// return an EventAdminResponse object
 		return EventAdminResponse.fromEvent(updatedEvent);
 	}
 
 	@Transactional
 	public void deleteEvent ( Long eventId, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.DELETE,
-			AppConstant.EVENT,
-			user,
-			"Deleting event with ID: " + eventId
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to delete event ID: {}", eventId);
+		}
 
-		// validate user access
-		checkUserAccess(user, MessageConstant.Operation.DELETE);
+		// step-1: security — only ADMIN/MEGATRON may delete events
+		checkUserAccess(user, EVENT_DELETE);
 
-		// find event by ID
+		// step-2: fetch the event to be deleted
 		var existingEvent = fetchEventById(eventId, user);
 
-		// handle teams that reference this event
-		List< Team > teams = teamRepository.findByEvent(existingEvent);
-		if ( ! teams.isEmpty() ) {
-			LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.DELETE,
-				AppConstant.EVENT,
-				user,
-				"Deleting " + teams.size() + " teams associated with event: " + existingEvent.getEventName()
-			);
-			teamRepository.deleteAll(teams);
-		}
+		// step-3: cascade delete all teams registered for this event
+		deleteEventTeams(existingEvent, eventId, user);
 
-		// handle many-to-many relationship with combo
-		Set< EventCombo > combos = eventComboRepository.findByEvents_EventId(eventId);
-		if ( ! combos.isEmpty() ) {
-			LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.UPDATE,
-				AppConstant.EVENT_COMBO,
-				user,
-				"Updating " + combos.size() + " combos that contain event ID: " + eventId
-			);
+		// step-4: update or cascade-delete event combos that reference this
+		removeEventFromCombos(existingEvent, eventId, user);
 
-			// remove the event from each combo
-			for ( EventCombo combo : combos ) {
-				combo.getEvents().remove(existingEvent);
-				// if the combo has fewer than 2 events, delete it
-				if ( combo.getEvents().size() < 2 ) {
-					eventComboRepository.delete(combo);
-					LoggingUtil.logOperation(
-						log,
-						MessageConstant.Operation.DELETE,
-						AppConstant.EVENT_COMBO,
-						user,
-						"Deleting combo ID: " + combo.getEventComboId() + " as it has fewer than 2 events"
-					);
-				} else {
-					// save the updated combo
-					eventComboRepository.save(combo);
-				}
-			}
-		}
+		// step-5: best-effort cleanup of the event poster image (non-fatal)
+		deleteEventPoster(existingEvent, eventId, user);
 
-		// delete image from cloudinary if exists
-		if ( existingEvent.getEventPosterUrl() != null && existingEvent.getEventPosterFileId() != null ) {
-			try {
-				imageStorageService.deleteFile(existingEvent.getEventPosterFileId());
-			} catch ( Exception e ) {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.DELETE,
-					AppConstant.IMAGE_STORAGE,
-					user,
-					"Failed to delete image for event ID: " + eventId + " - Error: " + e.getMessage(),
-					e
-				);
-				// continue with event deletion even if image deletion fails
-			}
-		}
-
-		// delete event from database
+		// step-6: delete the event from the database and audit log
 		eventRepository.delete(existingEvent);
-
-		// log the successful deletion of the event
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.DELETE,
-			AppConstant.EVENT,
-			user,
-			"Successfully deleted event ID: " + eventId + " - " + existingEvent.getEventName()
-		);
+		logOperation(log, EVENT_DELETE, EVENT, user,
+			format(EVENT_DELETED, existingEvent.getEventName(), eventId, user.getEmail(), user.getUserId()));
 	}
 
 	@Transactional
 	public EventAdminResponse toggleRegistrationStatus ( Long eventId, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.EVENT,
-			user,
-			"Toggling registration status for event with ID: " + eventId
-		);
+		if ( log.isDebugEnabled() ) {
+			log.debug("Received request to toggle registration status for event ID: {}", eventId);
+		}
 
-		// validate user access
-		checkUserAccess(user, "toggle registration status of");
+		// step-1: security — only ADMIN/MEGATRON may toggle registration
+		checkUserAccess(user, EVENT_TOGGLE_REGISTRATION);
 
-		// find event by ID
+		// step-2: fetch the existing event
 		var existingEvent = fetchEventById(eventId, user);
 
-		// get current status for logging
-		boolean currentStatus = existingEvent.isEventRegistrationOpen();
-		boolean newStatus = ! currentStatus;
-
-		// update registration status
-		existingEvent.setEventRegistrationOpen(newStatus);
+		// step-3: flip registration status and persist
+		boolean previousStatus = existingEvent.isEventRegistrationOpen();
+		existingEvent.setEventRegistrationOpen(! previousStatus);
 		var updatedEvent = eventRepository.save(existingEvent);
 
-		// log the successful update of registration status
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.UPDATE,
-			AppConstant.EVENT,
-			user,
-			"Successfully updated registration status for event ID: " + eventId +
-				" - Name: " + updatedEvent.getEventName() +
-				" - Status: " + ( currentStatus ? "OPEN -> CLOSED" : "CLOSED -> OPEN" )
-		);
+		// step-4: audit log the toggle result (old -> new status)
+		logOperation(log, EVENT_TOGGLE_REGISTRATION, EVENT, user,
+			format(EVENT_REGISTRATION_TOGGLED,
+				updatedEvent.getEventName(), eventId,
+				previousStatus ? OPEN : CLOSED,
+				! previousStatus ? OPEN : CLOSED,
+				user.getEmail(), user.getUserId()));
 
-		// return updated event
 		return EventAdminResponse.fromEvent(updatedEvent);
 	}
 
@@ -526,60 +367,88 @@ public class EventService {
 			.toList();
 	}
 
-	private void checkUserAccess ( User user, String methodType ) {
-		// check if user is null
+	private void checkUserAccess ( User user, String operation ) {
+		// step-1: reject unauthenticated requests outright
 		if ( user == null ) {
-			LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_DENIED,
-				null,
-				AppConstant.FAILED,
-				String.format(MessageConstant.ErrorTemplate.AUTHENTICATION_REQUIRED, methodType + " " + AppConstant.EVENT)
-			);
+			logSecurity(log, AppConstant.ACCESS_DENIED, null, FAILED,
+				format(AUTHENTICATION_REQUIRED, operation + " " + EVENT));
 			throw new ForbiddenAccessException(MessageConstant.UserMessage.ACCESS_DENIED);
 		}
 
-		// check if user has ROLE_USER
+		// step-2: reject regular users — only ADMIN and above may perform event mutations
 		if ( user.getRole().equals(Role.ROLE_USER) ) {
-			LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_DENIED,
-				user,
-				AppConstant.FAILED,
-				String.format(MessageConstant.ErrorTemplate.NOT_AUTHORIZED, methodType + " " + AppConstant.EVENT)
-			);
+			logSecurity(log, AppConstant.ACCESS_DENIED, user, FAILED,
+				format(NOT_AUTHORIZED, operation + " " + EVENT));
 			throw new ForbiddenAccessException(MessageConstant.UserMessage.ACCESS_DENIED);
 		}
 
-		// log the successful authorization
-		LoggingUtil.logSecurity(
-			log,
-			AppConstant.ACCESS_GRANTED,
-			user,
-			AppConstant.SUCCESS,
-			String.format(MessageConstant.SuccessTemplate.AUTHORIZED, methodType + " " + AppConstant.EVENT)
-		);
+		// step-3: access is granted — log for observability
+		if ( log.isDebugEnabled() ) {
+			log.debug("Access granted to user: {} (ID: {}) for operation: {}", user.getEmail(), user.getUserId(), operation);
+		}
 	}
 
 	private Event fetchEventById ( Long eventId, User user ) {
 		return eventRepository.findById(eventId)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.READ,
-					AppConstant.EVENT,
-					user,
-					String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.EVENT),
-					null
-				);
-				return new EventNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.EVENT));
+				logError(log, READ, EVENT, user, format(EVENT_NOT_FOUND, eventId), null);
+				return new EventNotFoundException(format(NOT_FOUND, EVENT));
 			});
 	}
 
 	private void validatePlayerLimits ( EventRequest request ) {
 		if ( request.minPlayers() > request.maxPlayers() ) {
-			throw new IllegalArgumentException(String.format(MessageConstant.ErrorTemplate.TEAM_SIZE,
-				request.minPlayers(), request.maxPlayers(), request.name()));
+			throw new IllegalArgumentException(
+				format(TEAM_SIZE, request.minPlayers(), request.maxPlayers(), request.name()));
+		}
+	}
+
+	private void deleteEventTeams ( Event existingEvent, Long eventId, User user ) {
+		List< Team > teams = teamRepository.findByEvent(existingEvent);
+		if ( ! teams.isEmpty() ) {
+			teamRepository.deleteAll(teams);
+			if ( log.isInfoEnabled() ) {
+				logOperation(log, EVENT_DELETE, EVENT, user,
+					format(EVENT_TEAMS_DELETED, teams.size(), existingEvent.getEventName(), eventId));
+			}
+		}
+	}
+
+	private void removeEventFromCombos ( Event existingEvent, Long eventId, User user ) {
+		// step-1: find all combos that include this event
+		Set< EventCombo > combos = eventComboRepository.findByEvents_EventId(eventId);
+		if ( ! combos.isEmpty() ) {
+			// step-2: remove the event from each combo's event list
+			for ( EventCombo combo : combos ) {
+				combo.getEvents().remove(existingEvent);
+				// step-3: if combo has fewer than 2 events after removal, delete it — otherwise save the updated combo
+				if ( combo.getEvents().size() < 2 ) {
+					// step-3a: combo is invalid with fewer than 2 events — delete it
+					eventComboRepository.delete(combo);
+					if ( log.isInfoEnabled() ) {
+						logOperation(log, EVENT_DELETE, EVENT_COMBO, user,
+							format(EVENT_COMBO_DELETED, combo.getEventComboId()));
+					}
+				} else {
+					// step-3b: combo still has enough events — just save the updated reference list
+					eventComboRepository.save(combo);
+				}
+			}
+			if ( log.isInfoEnabled() ) {
+				logOperation(log, EVENT_DELETE, EVENT_COMBO, user,
+					format(EVENT_COMBOS_UPDATED, combos.size(), existingEvent.getEventName(), eventId));
+			}
+		}
+	}
+
+	private void deleteEventPoster ( Event existingEvent, Long eventId, User user ) {
+		if ( existingEvent.getEventPosterUrl() != null && existingEvent.getEventPosterFileId() != null ) {
+			try {
+				imageStorageService.deleteFile(existingEvent.getEventPosterFileId());
+			} catch ( Exception e ) {
+				logError(log, EVENT_DELETE, IMAGE_STORAGE, user,
+					format(EVENT_IMAGE_DELETE_FAILED, eventId, e.getMessage()), e);
+			}
 		}
 	}
 }

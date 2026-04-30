@@ -42,11 +42,11 @@ public class EventController {
 	@GetMapping ( "/combos" )
 	@Operation (
 		summary = "Get all events and event combos categorized by domain",
-		description = "Retrieves a list of domains, each containing its respective events and event combos."
+		description = "Retrieves a list of domains, each containing its respective events and event combos. This is the primary public endpoint for the frontend home/events page."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events and event combos",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventAndEventComboResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Full categorized response", value = """
 				[
 				  {
 				    "domain": "CODING",
@@ -105,13 +105,14 @@ public class EventController {
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ()
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get all events",
-		description = "Retrieves a list of all events, grouped by their respective domains."
+		summary = "Get all events (Super Admin)",
+		description = "Retrieves all events grouped by domain. Restricted to Super Admin only."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved categorized events",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Categorized events", value = """
 				[
 				  {
 				    "domain": "CODING",
@@ -135,19 +136,22 @@ public class EventController {
 				    ]
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< CategorizedEventResponse > > getAllEvents () {
 		return ResponseEntity.ok(eventService.getAllEvents());
 	}
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/domains/{domain}" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get events by domain",
-		description = "Retrieves a list of events belonging to a specific domain."
+		summary = "Get events by domain (Super Admin)",
+		description = "Retrieves a flat list of events belonging to a specific domain. Restricted to Super Admin only."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events for the domain",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = EventPublicResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Events by domain", value = """
 				[
 				  {
 				    "id": 4,
@@ -166,6 +170,8 @@ public class EventController {
 				    "isRegistrationOpen": true
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< EventPublicResponse > > getEventsByDomain (
 		@Parameter ( description = "Domain to filter by", example = "CODING" ) @PathVariable Domain domain
 	) {
@@ -174,13 +180,14 @@ public class EventController {
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/status" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get events by registration status",
-		description = "Retrieves a list of events where registration is either open or closed, grouped by domain."
+		summary = "Get events by registration status (Super Admin)",
+		description = "Retrieves events where registration is either open or closed, grouped by domain. Restricted to Super Admin only."
 	)
-	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by status",
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by registration status",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Open events", value = """
 				[
 				  {
 				    "domain": "CODING",
@@ -199,22 +206,26 @@ public class EventController {
 				    ]
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< CategorizedEventResponse > > getEventsByStatus (
 		@Parameter ( description = "Whether to filter by open or closed registration", example = "true" )
-		@RequestParam ( name = "isOpen" ) boolean isOpen
+		@RequestParam ( name = "isOpen" ) boolean isOpen,
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
 	) {
-		return ResponseEntity.ok(eventService.getEventsByRegistration(isOpen));
+		return ResponseEntity.ok(eventService.getEventsByRegistration(isOpen, user));
 	}
 
 	@PreAuthorize ( "hasRole('SUPERADMIN')" )
 	@GetMapping ( "/type/{eventType}" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
-		summary = "Get events by type",
-		description = "Retrieves a list of events of a specific type (e.g., MAIN, ON_SPOT), grouped by domain."
+		summary = "Get events by type (Super Admin)",
+		description = "Retrieves events of a specific type (e.g., MAIN, ON_SPOT), grouped by domain. Restricted to Super Admin only."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by type",
 		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "MAIN events", value = """
 				[
 				  {
 				    "domain": "CODING",
@@ -233,6 +244,8 @@ public class EventController {
 				    ]
 				  }
 				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< CategorizedEventResponse > > getEventsByType (
 		@Parameter ( description = "Type of event to filter by", example = "MAIN" ) @PathVariable EventType eventType
 	) {
@@ -242,11 +255,11 @@ public class EventController {
 	@GetMapping ( "/{id}" )
 	@Operation (
 		summary = "Get event by ID",
-		description = "Retrieves detailed information for a single event by its unique identifier."
+		description = "Retrieves detailed public information for a single event by its unique identifier."
 	)
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved event details",
 		content = @Content ( schema = @Schema ( implementation = EventPublicResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Event detail", value = """
 				{
 				  "id": 1,
 				  "domain": "GAMING",
@@ -265,7 +278,7 @@ public class EventController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "404", description = "Event not found",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Not found error", value = """
 				{
 				  "status": 404,
 				  "message": "Event not found.",
@@ -290,7 +303,7 @@ public class EventController {
 	)
 	@io.swagger.v3.oas.annotations.parameters.RequestBody (
 		content = @Content ( schema = @Schema ( implementation = EventRequest.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Create event request", value = """
 				{
 				  "domain": "CODING",
 				  "name": "Code-O-Fiesta",
@@ -307,7 +320,7 @@ public class EventController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "201", description = "Event successfully created",
 		content = @Content ( schema = @Schema ( implementation = EventAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Created event", value = """
 				{
 				  "id": 28,
 				  "domain": "CODING",
@@ -330,6 +343,19 @@ public class EventController {
 				  "createdByUsername": "john@doe.com",
 				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "400", description = "Validation failed — missing or invalid fields",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ),
+			examples = @ExampleObject ( name = "Validation error", value = """
+				{
+				  "status": 400,
+				  "message": "Event name cannot be empty",
+				  "error": "Bad Request",
+				  "timestamp": 1778839200.000000000,
+				  "path": "/api/events",
+				  "validationErrors": [
+				    { "field": "name", "message": "Event name cannot be empty" }
+				  ]
+				}""" ) ) )
 	@ApiResponse ( responseCode = "403", description = "Insufficient permissions",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventAdminResponse > createEvent (
@@ -348,7 +374,7 @@ public class EventController {
 	)
 	@io.swagger.v3.oas.annotations.parameters.RequestBody (
 		content = @Content ( schema = @Schema ( implementation = EventRequest.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Update event request", value = """
 				{
 				  "domain": "CODING",
 				  "name": "Updated Code-O-Fiesta",
@@ -365,7 +391,7 @@ public class EventController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "200", description = "Event successfully updated",
 		content = @Content ( schema = @Schema ( implementation = EventAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Updated event", value = """
 				{
 				  "id": 28,
 				  "domain": "CODING",
@@ -410,12 +436,19 @@ public class EventController {
 	)
 	@ApiResponse ( responseCode = "200", description = "Event poster successfully updated",
 		content = @Content ( schema = @Schema ( implementation = EventAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Updated poster", value = """
 				{
 				  "id": 28,
+				  "domain": "CODING",
+				  "name": "Code-O-Fiesta",
 				  "posterUrl": "https://ik.imagekit.io/updated_poster.jpg",
-				  "updatedAt": 1778839200.000000000
+				  "posterFileId": "69e0d6...",
+				  "isRegistrationOpen": false,
+				  "updatedAt": 1778839200.000000000,
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Event not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventAdminResponse > updateEventImage (
 		@Parameter ( description = "Unique identifier of the event", example = "1" ) @PathVariable Long id,
 		@Parameter ( description = "Image file to upload", schema = @Schema ( type = "string", format = "binary" ) )
@@ -430,11 +463,19 @@ public class EventController {
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
 		summary = "Delete an event",
-		description = "Removes an event from the portal. Restricted to Admin and Super Admin users."
+		description = "Permanently removes an event from the portal. Restricted to Admin and Super Admin users."
 	)
-	@ApiResponse ( responseCode = "204", description = "Event successfully deleted" )
+	@ApiResponse ( responseCode = "204", description = "Event successfully deleted — no content returned" )
 	@ApiResponse ( responseCode = "404", description = "Event not found",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ),
+			examples = @ExampleObject ( name = "Not found error", value = """
+				{
+				  "status": 404,
+				  "message": "Event not found.",
+				  "error": "Not Found",
+				  "timestamp": 1778839200.000000000,
+				  "path": "/api/events/999"
+				}""" ) ) )
 	public ResponseEntity< Void > deleteEvent (
 		@Parameter ( description = "Unique identifier of the event to delete", example = "1" ) @PathVariable Long id,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
@@ -452,12 +493,18 @@ public class EventController {
 	)
 	@ApiResponse ( responseCode = "200", description = "Event status successfully toggled",
 		content = @Content ( schema = @Schema ( implementation = EventAdminResponse.class ),
-			examples = @ExampleObject ( value = """
+			examples = @ExampleObject ( name = "Status toggled", value = """
 				{
 				  "id": 28,
+				  "domain": "CODING",
+				  "name": "Code-O-Fiesta",
 				  "isRegistrationOpen": true,
-				  "updatedAt": 1778839200.000000000
+				  "createdAt": 1778839200.000000000,
+				  "updatedAt": 1778839200.000000000,
+				  "updatedByUsername": "john@doe.com"
 				}""" ) ) )
+	@ApiResponse ( responseCode = "404", description = "Event not found",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< EventAdminResponse > updateEventStatus (
 		@Parameter ( description = "Unique identifier of the event", example = "1" ) @PathVariable Long id,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
