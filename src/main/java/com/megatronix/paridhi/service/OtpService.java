@@ -5,6 +5,7 @@ import com.megatronix.paridhi.dto.request.OtpRequest;
 import com.megatronix.paridhi.dto.request.OtpVerificationRequest;
 import com.megatronix.paridhi.dto.response.MessageResponse;
 import com.megatronix.paridhi.dto.response.OtpVerificationResponse;
+import com.megatronix.paridhi.exception.InvalidEmailException;
 import com.megatronix.paridhi.exception.InvalidOtpException;
 import com.megatronix.paridhi.exception.OtpExpiredException;
 import com.megatronix.paridhi.exception.UserAlreadyVerifiedException;
@@ -12,6 +13,7 @@ import com.megatronix.paridhi.model.OtpToken;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.OtpTokenRepository;
 import com.megatronix.paridhi.repository.UserRepository;
+import com.megatronix.paridhi.security.JwtService;
 import com.megatronix.paridhi.util.LoggingUtil;
 import com.megatronix.paridhi.util.TokenSecurityUtil;
 import org.slf4j.Logger;
@@ -28,7 +30,6 @@ import static com.megatronix.paridhi.constant.AppConstant.*;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
-import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.INVALID_EMAIL;
 import static java.lang.String.format;
 
 @Service
@@ -37,15 +38,18 @@ public class OtpService {
 	private static final Logger log = LoggerFactory.getLogger(OtpService.class);
 	private static final int OTP_COOLDOWN_SECONDS = 60;
 
+	private final JwtService jwtService;
 	private final EmailService emailService;
 	private final UserRepository userRepository;
 	private final OtpTokenRepository otpTokenRepository;
 
 	public OtpService (
+		JwtService jwtService,
 		EmailService emailService,
 		UserRepository userRepository,
 		OtpTokenRepository otpTokenRepository
 	) {
+		this.jwtService = jwtService;
 		this.emailService = emailService;
 		this.userRepository = userRepository;
 		this.otpTokenRepository = otpTokenRepository;
@@ -71,7 +75,7 @@ public class OtpService {
 		// step-2: guard - reject if no USER found with the provided email
 		if ( userOpt.isEmpty() ) {
 			LoggingUtil.logError(log, OTP_VERIFY, OTP_SERVICE, null, format(NOT_FOUND_LOG, USER, MAIL, email), null);
-			return OtpVerificationResponse.invalid(INVALID_EMAIL);
+			throw new InvalidEmailException();
 		}
 
 		User user = userOpt.get();
@@ -111,9 +115,11 @@ public class OtpService {
 		user.setVerified(true);
 		latestOtp.setUsed(true);
 
+		// step-8: generate a JWT token for the USER upon successful verification
+		String jwtToken = jwtService.generateToken(user);
 		LoggingUtil.logSecurity(log, OTP_VERIFY, user, SUCCESS, format(OTP_VERIFIED_LOG, email));
 
-		return OtpVerificationResponse.valid();
+		return OtpVerificationResponse.valid(jwtToken);
 	}
 
 	@Transactional

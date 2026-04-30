@@ -87,13 +87,13 @@ public class OtpController {
 	}
 
 	@PostMapping ( "/verify" )
-	@Operation ( summary = "Verify OTP", description = "Verifies the provided 6-digit OTP for a user. On success, marks the user as verified. "
-		+
-		"Each OTP allows up to 5 attempts before being locked. A locked OTP requires requesting a new one." )
+	@Operation ( summary = "Verify OTP", description = "Verifies the provided 6-digit OTP for a user. On success, " +
+		"marks the user as verified. Each OTP allows up to 5 attempts before being locked. A locked OTP requires requesting a new one." )
 	@ApiResponse ( responseCode = "200", description = "OTP verified successfully — user is now verified", content = @Content ( schema = @Schema ( implementation = OtpVerificationResponse.class ), examples = @ExampleObject ( value = """
 		{
 		  "success": true,
-		  "message": "OTP verified successfully."
+		  "message": "OTP verified successfully.",
+		  "token": "eyJhbGciOiJIUzUxMi..."
 		}""" ) ) )
 	@ApiResponse ( responseCode = "400", description = "Invalid, expired, or locked OTP", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ), examples = {
 		@ExampleObject ( name = "Wrong OTP", value = """
