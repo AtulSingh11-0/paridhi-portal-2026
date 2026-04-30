@@ -1,130 +1,88 @@
 package com.megatronix.paridhi.service;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.constant.Role;
 import com.megatronix.paridhi.dto.request.AdminMRDRequest;
-import com.megatronix.paridhi.dto.request.MRDRequest;
 import com.megatronix.paridhi.dto.response.MRDResponse;
-import com.megatronix.paridhi.exception.EmailNotVerifiedException;
-import com.megatronix.paridhi.exception.ForbiddenAccessException;
-import com.megatronix.paridhi.exception.GIDNotFoundException;
-import com.megatronix.paridhi.exception.ProfileNotYetCreatedException;
-import com.megatronix.paridhi.exception.UserNotFoundException;
+import com.megatronix.paridhi.exception.*;
 import com.megatronix.paridhi.model.MRD;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.MRDRepository;
 import com.megatronix.paridhi.repository.UserRepository;
+import com.megatronix.paridhi.security.JwtService;
 import com.megatronix.paridhi.util.LoggingUtil;
-
+import com.megatronix.paridhi.util.RandomUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+import static com.megatronix.paridhi.constant.AppConstant.BEARER;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.INVALID_AUTH_HEADER;
+import static com.megatronix.paridhi.dto.response.MRDResponse.from;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class MRDService {
+	private final JwtService jwtService;
 	private final EmailService emailService;
 	private final MRDRepository mrdRepository;
 	private final UserRepository userRepository;
-	private static final String PASSWORD = UUID.randomUUID().toString().substring(0, 8);
 	private final BCryptPasswordEncoder passwordEncoder;
+	private final StringRedisTemplate stringRedisTemplate;
+	private static final String PASSWORD = RandomUtil.generateRandomPassword(12);
+	private static final String MRD_SEQ_KEY = "paridhi:mrd:sequence:2026";
 	private static final String FETCHED = "Fetched ";
 	private static final String MRD_SERVICE = "MRDService";
 	private static final String GID_NOT_FOUND = "GID not found: ";
 	private static final String USER_NOT_FOUND_WITH_EMAIL = "User not found with email: ";
+
+	private static MRDResponse apply ( MRD mrd ) {
+		return from(mrd.getGid());
+	}
 
 	/*
 	 * public methods - doesn't require authentication
 	 */
 
 	@Transactional
-	public MRDResponse registerMRD(MRDRequest request) {
+	public MRDResponse performUserMRD ( String authHeader ) {
+		if ( authHeader == null || ! authHeader.startsWith(BEARER) ) {
+			throw new ForbiddenAccessException(INVALID_AUTH_HEADER);
+		}
+		String token = authHeader.substring(7);
+		String email = jwtService.extractUsername(token);
+
 		// log the operation
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.CREATE,
-				MRD_SERVICE,
-				null,
-				"MRD registration request: " + request);
+			log,
+			MessageConstant.Operation.CREATE,
+			MRD_SERVICE,
+			null,
+			"MRD registration request: " + email);
 
 		// find the user
-		var user = userRepository.findUserByEmail(request.getEmail())
-				.orElseThrow(() -> {
-					LoggingUtil.logError(
-							log,
-							MessageConstant.Operation.CREATE,
-							MRD_SERVICE,
-							null,
-							USER_NOT_FOUND_WITH_EMAIL + request.getEmail(),
-							null);
-					return new UserNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.USER));
-				});
+		var user = fetchUserByEmail(email);
+		validateUserForRegistration(user);
 
-		// check if the email is verified
-		if (!user.isVerified()) {
-			LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.CREATE,
-					MRD_SERVICE,
-					user,
-					"Email not verified for user with ID: " + user.getUserId(),
-					null);
-			throw new EmailNotVerifiedException("You need to verify your email before registering for Paridhi");
-		}
-
-		// check if the user has created its profile
-		if (!user.isProfileCreated()) {
-			LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.CREATE,
-					MRD_SERVICE,
-					user,
-					"User with ID: " + user.getUserId() + " has not created its profile",
-					null);
-			throw new ProfileNotYetCreatedException();
-		}
-
-		// create new MRD registration with an unique GID
-		var mrd = MRD.builder()
-				.user(user)
-				.gid(generateGID())
-				.name(user.getName())
-				.email(user.getEmail())
-				.phoneNumber(user.getPhoneNumber())
-				.college(user.getCollege())
-				.year(user.getYear())
-				.department(user.getDepartment())
-				.rollNo(user.getRollNo())
-				.build();
-
-		// save the MRD registration
-		MRD savedMRD = mrdRepository.save(mrd);
-
-		// log the successful registration
-		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.CREATE,
-				MRD_SERVICE,
-				null,
-				"MRD registration completed for user " + user.getUserId() + ": GID=" + savedMRD.getGid());
+		// create and save the MRD registration
+		MRD savedMRD = createandSaveMRD(email);
 
 		// send email to the user
 		emailService.sendMRDWelcome(user.getEmail(), user.getName(), savedMRD.getGid());
 
 		// return the response
-		return mapToResponse(savedMRD);
+		return from(savedMRD.getGid());
 	}
 
 	@Transactional
-	public MRDResponse registerMRD(AdminMRDRequest request) {
+	public MRDResponse performUserMRDByAdmin ( AdminMRDRequest request ) {
 		// log the operation
 		LoggingUtil.logOperation(
 			log,
@@ -137,84 +95,21 @@ public class MRDService {
 		// step 1: find the user from the user table, if he exists then use the previous data or else create a new user
 
 		// find the user
-		var existingUser = userRepository.findUserByEmail(request.getEmail());
+		var existingUserOptional = userRepository.findUserByEmail(request.getEmail());
 
 		// if the user already exists, then call registerMRD method and return the response
-		if (existingUser.isPresent()) {
-			return registerMRD(
-				MRDRequest.builder()
-					.email(existingUser.get().getEmail())
-					.build()
-			);
+		if ( existingUserOptional.isPresent() ) {
+			User existingUser = existingUserOptional.get();
+			MRD savedMRD = createandSaveMRD(request.getEmail());
+			emailService.sendMRDWelcome(existingUser.getEmail(), existingUser.getName(), savedMRD.getGid());
+			return from(savedMRD.getGid());
 		}
 
-		// step 2: create new MRD registration with an unique GID and save it to the database
-		var user = User.builder()
-			.name(request.getName())
-			.email(request.getEmail())
-			.password(passwordEncoder.encode(PASSWORD))
-			.phoneNumber(request.getContact())
-			.college(request.getCollege())
-			.year(request.getYear())
-			.department(request.getDepartment())
-			.rollNo(request.getRollNo())
-			.role(Role.ROLE_USER)
-			.isVerified(true)
-			.isProfileCreated(true)
-			.build();
-
-		// save the user to the database
-		var savedUser = userRepository.save(user);
-		
-		// log the successful user creation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			MRD_SERVICE,
-			null,
-			"New user created with email: " + request.getEmail()
-		);
-
-		// create new MRD registration with an unique GID and save it to the database
-		var mrd = MRD.builder()
-			.user(savedUser)
-			.gid(generateGID())
-			.name(request.getName())
-			.email(request.getEmail())
-			.phoneNumber(request.getContact())
-			.college(request.getCollege())
-			.year(request.getYear())
-			.department(request.getDepartment())
-			.rollNo(request.getRollNo())
-			.build();
-
-		var savedMRD = mrdRepository.save(mrd);
-
-		/* step 3: send email to the user
-		 * sendProfileCredentials
-		 * sendMRDWelcome
-		 */
-		
-		emailService.sendConsolidatedRegistrationEmail(savedUser.getEmail(), savedUser.getName(), PASSWORD, savedMRD.getGid());
-
-		// send email to the user regarding profile creation
-		// emailService.sendProfileCredentials(savedUser.getEmail(), savedUser.getName(), PASSWORD);		
-		
-		// send email to the user regarding MRD welcome
-		// emailService.sendMRDWelcome(savedUser.getEmail(), savedUser.getName(), savedMRD.getGid());
-
-		// log the successful registration
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			MRD_SERVICE,
-			null,
-			"MRD registration completed for user " + savedUser.getUserId() + ": GID=" + savedMRD.getGid()
-		);
-		
-
-		// return the response
-		return mapToResponse(savedMRD);
+		// if the user doesn't exist, then create a new user and then call registerMRD method and return the response
+		User newUser = createAndSaveUserByAdmin(request);
+		MRD savedMRD = createandSaveMRD(request.getEmail());
+		emailService.sendMRDWelcome(newUser.getEmail(), newUser.getName(), savedMRD.getGid());
+		return from(savedMRD.getGid());
 	}
 
 	/*
@@ -222,187 +117,177 @@ public class MRDService {
 	 */
 
 	@Transactional
-	public MRDResponse updatePaymentStatus(String gid, User user) {
+	public MRDResponse updatePaymentStatus ( String gid, User user ) {
 		// log the operation
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.UPDATE,
-				MRD_SERVICE,
-				user,
-				"Updating payment status for MRD with GID: " + gid);
+			log,
+			MessageConstant.Operation.UPDATE,
+			MRD_SERVICE,
+			user,
+			"Updating payment status for MRD with GID: " + gid);
 
 		// validate user access
 		checkUserAccess(user, "update payment status");
 
 		// find the MRD by GID
 		var mrd = mrdRepository.findByGid(gid)
-				.orElseThrow(() -> {
-					LoggingUtil.logError(
-							log,
-							MessageConstant.Operation.UPDATE,
-							MRD_SERVICE,
-							user,
-							GID_NOT_FOUND + gid,
-							null);
-					return new GIDNotFoundException(GID_NOT_FOUND + gid);
-				});
+			.orElseThrow(() -> {
+				LoggingUtil.logError(
+					log,
+					MessageConstant.Operation.UPDATE,
+					MRD_SERVICE,
+					user,
+					GID_NOT_FOUND + gid,
+					null);
+				return new GIDNotFoundException(GID_NOT_FOUND + gid);
+			});
 
 		// toggle the payment status and save the MRD
-		mrd.setHasPaid(!mrd.isHasPaid());
+		mrd.setHasPaid(! mrd.isHasPaid());
 		MRD updatedMRD = mrdRepository.save(mrd);
 
 		// log the successful update
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.UPDATE,
-				MRD_SERVICE,
-				user,
-				"Updated payment status for GID " + gid + ": " + updatedMRD.isHasPaid());
+			log,
+			MessageConstant.Operation.UPDATE,
+			MRD_SERVICE,
+			user,
+			"Updated payment status for GID " + gid + ": " + updatedMRD.isHasPaid());
 
 		// return the response
-		return mapToResponse(updatedMRD);
+		return from(updatedMRD.getGid());
 	}
 
-	public List<MRDResponse> getUserMRDs(String email, User user) {
+	public List< MRDResponse > getUserMRDs ( String email, User user ) {
 		// log the operation
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				"Fetching MRDs for user with email: " + email + " and role: " + user.getRole());
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			"Fetching MRDs for user with email: " + email + " and role: " + user.getRole());
 
 		// validate user access
 		checkUserAccess(user, "fetch MRDs");
 
 		// find the user
-		var existingUser = userRepository.findUserByEmail(email)
-				.orElseThrow(() -> {
-					LoggingUtil.logError(
-							log,
-							MessageConstant.Operation.READ,
-							MRD_SERVICE,
-							user,
-							USER_NOT_FOUND_WITH_EMAIL + email,
-							null);
-					return new UserNotFoundException(USER_NOT_FOUND_WITH_EMAIL + email);
-				});
+		var existingUser = fetchUserByEmail(email);
 
 		// fetch MRDs for the user
 		var mrds = mrdRepository.findAllByUser(existingUser);
 
 		// log the successful retrieval
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				FETCHED + mrds.size() + " MRDs for user with email: " + email);
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			FETCHED + mrds.size() + " MRDs for user with email: " + email);
 
 		// return the list of MRDResponse objects
 		return mrds.stream()
-				.map(this::mapToResponse)
-				.toList();
+			.map(MRDService::apply)
+			.toList();
 	}
 
-	public List<String> getUserGids(String email, User user) {
+	public List< String > getUserGids ( String email, User user ) {
 		// log the operation
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				"Fetching GIDs for user with email: " + email);
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			"Fetching GIDs for user with email: " + email);
 
 		// validate user access
 		checkUserAccess(user, "fetch GIDs");
 
 		// find the user
 		var existingUser = userRepository.findUserByEmail(email)
-				.orElseThrow(() -> {
-					LoggingUtil.logError(
-							log,
-							MessageConstant.Operation.READ,
-							MRD_SERVICE,
-							user,
-							USER_NOT_FOUND_WITH_EMAIL + email,
-							null);
-					return new UserNotFoundException(USER_NOT_FOUND_WITH_EMAIL + email);
-				});
+			.orElseThrow(() -> {
+				LoggingUtil.logError(
+					log,
+					MessageConstant.Operation.READ,
+					MRD_SERVICE,
+					user,
+					USER_NOT_FOUND_WITH_EMAIL + email,
+					null);
+				return new UserNotFoundException(USER_NOT_FOUND_WITH_EMAIL + email);
+			});
 
 		// fetch MRDs for the user
 		var mrds = mrdRepository.findAllByUser(existingUser);
 
 		// log the successful retrieval
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				FETCHED + mrds.size() + " MRDs for user with email: " + email);
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			FETCHED + mrds.size() + " MRDs for user with email: " + email);
 
 		// map MRDs to GIDs
-		List<String> gids = mrds.stream()
-				.map(MRD::getGid)
-				.toList();
+		List< String > gids = mrds.stream()
+			.map(MRD::getGid)
+			.toList();
 
 		// log the successful retrieval of GIDs
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				FETCHED + gids.size() + " GIDs for user with email: " + email);
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			FETCHED + gids.size() + " GIDs for user with email: " + email);
 
 		// return the list of GIDs
 		return gids;
 	}
 
-	public MRDResponse getMRDbyGID(String gid, User user) {
+	public MRDResponse getMRDbyGID ( String gid, User user ) {
 		// log the operation
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				"Fetching MRD with GID: " + gid);
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			"Fetching MRD with GID: " + gid);
 
 		// validate user access
 		checkUserAccess(user, "fetch MRD by GID");
 
 		// find the MRD by GID
 		var mrd = mrdRepository.findByGid(gid)
-				.orElseThrow(() -> {
-					LoggingUtil.logError(
-							log,
-							MessageConstant.Operation.READ,
-							MRD_SERVICE,
-							user,
-							GID_NOT_FOUND + gid,
-							null);
-					return new GIDNotFoundException(GID_NOT_FOUND + gid);
-				});
+			.orElseThrow(() -> {
+				LoggingUtil.logError(
+					log,
+					MessageConstant.Operation.READ,
+					MRD_SERVICE,
+					user,
+					GID_NOT_FOUND + gid,
+					null);
+				return new GIDNotFoundException(GID_NOT_FOUND + gid);
+			});
 
 		// log the successful retrieval
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				"Fetched MRD with GID: " + gid);
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			"Fetched MRD with GID: " + gid);
 
 		// return the MRDResponse object
-		return mapToResponse(mrd);
+		return from(mrd.getGid());
 	}
 
-	public List<MRDResponse> getAllMRDs(User user) {
+	public List< MRDResponse > getAllMRDs ( User user ) {
 		// log the operation
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				"Fetching all MRDs for user with role: " + user.getRole());
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			"Fetching all MRDs for user with role: " + user.getRole());
 
 		// validate user access
 		checkUserAccess(user, "fetch all MRDs");
@@ -412,71 +297,137 @@ public class MRDService {
 
 		// log the successful retrieval
 		LoggingUtil.logOperation(
-				log,
-				MessageConstant.Operation.READ,
-				MRD_SERVICE,
-				user,
-				FETCHED + mrds.size() + " MRDs");
+			log,
+			MessageConstant.Operation.READ,
+			MRD_SERVICE,
+			user,
+			FETCHED + mrds.size() + " MRDs");
 
 		// return the list of MRDResponse objects
 		return mrds.stream()
-				.map(this::mapToResponse)
-				.toList();
+			.map(MRDService::apply)
+			.toList();
 	}
 
 	/*
 	 * private methods - isUsed internally
 	 */
 
-	private MRDResponse mapToResponse(MRD mrd) {
-		return MRDResponse.builder()
-				.id(mrd.getMrdId())
-				.gid(mrd.getGid())
-				.name(mrd.getName())
-				.email(mrd.getEmail())
-				.phoneNumber(mrd.getPhoneNumber())
-				.college(mrd.getCollege())
-				.year(mrd.getYear())
-				.department(mrd.getDepartment())
-				.rollNo(mrd.getRollNo())
-				.hasPaid(mrd.isHasPaid())
-				.registeredAt(mrd.getCreatedAt())
-				.build();
+	private MRD createandSaveMRD ( String email ) {
+		// find the user
+		var user = fetchUserByEmail(email);
+
+		// create new MRD registration with a unique GID
+		var mrd = MRD.builder()
+			.user(user)
+			.gid(generateGID())
+			.name(user.getName())
+			.email(user.getEmail())
+			.phoneNumber(user.getPhoneNumber())
+			.college(user.getCollege())
+			.year(user.getYear())
+			.department(user.getDepartment())
+			.rollNo(user.getRollNo())
+			.build();
+
+		// save the MRD registration
+		MRD savedMRD = mrdRepository.save(mrd);
+
+		LoggingUtil.logOperation(
+			log,
+			MessageConstant.Operation.CREATE,
+			MRD_SERVICE,
+			null,
+			"MRD registration completed for user " + user.getUserId() + ": GID=" + savedMRD.getGid()
+		);
+
+		return savedMRD;
 	}
 
-	private String generateGID() {
-		return "PD-2025-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+	private void validateUserForRegistration ( User user ) {
+		if ( ! user.isVerified() ) {
+			LoggingUtil.logError(log, MessageConstant.Operation.CREATE, MRD_SERVICE, user, "Email not verified: " + user.getUserId(), null);
+			throw new EmailNotVerifiedException("You need to verify your email before registering for Paridhi");
+		}
+
+		if ( ! user.isProfileCreated() ) {
+			LoggingUtil.logError(log, MessageConstant.Operation.CREATE, MRD_SERVICE, user, "Profile not created: " + user.getUserId(), null);
+			throw new ProfileNotYetCreatedException();
+		}
 	}
 
-	private void checkUserAccess(User user, String methodName) {
-		// check if the user is null
-		if (user == null) {
-			LoggingUtil.logSecurity(
+	private User createAndSaveUserByAdmin ( AdminMRDRequest request ) {
+		var user = User.builder()
+			.name(request.getName())
+			.email(request.getEmail())
+			.password(passwordEncoder.encode(PASSWORD))
+			.phoneNumber(request.getContact())
+			.college(request.getCollege())
+			.year(request.getYear())
+			.department(request.getDepartment())
+			.rollNo(request.getRollNo())
+			.isVerified(true)
+			.isProfileCreated(true)
+			.build();
+
+		User savedUser = userRepository.save(user);
+
+		LoggingUtil.logOperation(log, MessageConstant.Operation.CREATE, MRD_SERVICE, null, "New user created by Admin: " + request.getEmail());
+
+		return savedUser;
+	}
+
+	private User fetchUserByEmail ( String email ) {
+		return userRepository.findUserByEmail(email)
+			.orElseThrow(() -> {
+				LoggingUtil.logError(
 					log,
-					AppConstant.ACCESS_DENIED,
+					MessageConstant.Operation.CREATE,
+					MRD_SERVICE,
 					null,
-					AppConstant.FAILED,
-					"User is not authenticated to " + methodName);
+					USER_NOT_FOUND_WITH_EMAIL + email,
+					null);
+				return new UserNotFoundException(String.format(MessageConstant.ErrorTemplate.NOT_FOUND, AppConstant.USER));
+			});
+	}
+
+	private String generateGID () {
+		Long sequence = stringRedisTemplate.opsForValue().increment(MRD_SEQ_KEY);
+		String paddedSequence = String.format("%04d", sequence);
+		String salt = RandomUtil.generateGidSalt(2);
+
+		return "PD26-" + paddedSequence + "-" + salt;
+	}
+
+	private void checkUserAccess ( User user, String methodName ) {
+		// check if the user is null
+		if ( user == null ) {
+			LoggingUtil.logSecurity(
+				log,
+				AppConstant.ACCESS_DENIED,
+				null,
+				AppConstant.FAILED,
+				"User is not authenticated to " + methodName);
 			throw new ForbiddenAccessException("You do not have permission to access this resource");
 		}
 
 		// check if the user has ROLE_USER
-		if (user.getRole().equals(Role.ROLE_USER)) {
+		if ( user.getRole().equals(Role.ROLE_USER) ) {
 			LoggingUtil.logSecurity(
-					log,
-					AppConstant.ACCESS_DENIED,
-					user,
-					AppConstant.FAILED,
-					"User with ID " + user.getUserId() + " not authorized to " + methodName);
+				log,
+				AppConstant.ACCESS_DENIED,
+				user,
+				AppConstant.FAILED,
+				"User with ID " + user.getUserId() + " not authorized to " + methodName);
 			throw new ForbiddenAccessException("User not authorized to " + methodName);
 		}
 
 		// log the successful authorization
 		LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_GRANTED,
-				user,
-				AppConstant.SUCCESS,
-				"User with ID " + user.getUserId() + " authorized to " + methodName);
+			log,
+			AppConstant.ACCESS_GRANTED,
+			user,
+			AppConstant.SUCCESS,
+			"User with ID " + user.getUserId() + " authorized to " + methodName);
 	}
 }
