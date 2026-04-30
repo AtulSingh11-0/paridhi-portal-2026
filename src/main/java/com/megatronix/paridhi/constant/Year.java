@@ -9,5 +9,5 @@ public enum Year {
 	ALUMNI,
 	OTHER,
 	OTHERS,
-	NOT_APPLICABLE;
+	NOT_APPLICABLE
 }
