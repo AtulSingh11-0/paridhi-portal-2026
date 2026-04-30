@@ -8,18 +8,29 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import static com.megatronix.paridhi.dto.response.ErrorResponse.of;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Order ( 4 )
 @RestControllerAdvice
 public class BadRequestExceptionHandler {
 
+	@ExceptionHandler ( InvalidEmailException.class )
+	public ResponseEntity< ErrorResponse > handleInvalidEmailException (
+		InvalidEmailException ex,
+		HttpServletRequest request
+	) {
+		ErrorResponse response = of(BAD_REQUEST.value(), ex.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+
+		return ResponseEntity.status(BAD_REQUEST).body(response);
+	}
+
 	@ExceptionHandler ( InvalidDomainException.class )
 	public ResponseEntity< ErrorResponse > handleInvalidDomainException (
 		InvalidDomainException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -29,7 +40,7 @@ public class BadRequestExceptionHandler {
 		ProfileNotYetCreatedException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -39,7 +50,7 @@ public class BadRequestExceptionHandler {
 		MemberProfileAlreadyExistsException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -49,7 +60,7 @@ public class BadRequestExceptionHandler {
 		EmailNotVerifiedException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -59,7 +70,7 @@ public class BadRequestExceptionHandler {
 		TeamRegistrationException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -69,7 +80,7 @@ public class BadRequestExceptionHandler {
 		DomainPosterAlreadyExistsExcpetion exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -79,7 +90,7 @@ public class BadRequestExceptionHandler {
 		InvalidFileException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -89,7 +100,7 @@ public class BadRequestExceptionHandler {
 		FileUploadException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -99,7 +110,7 @@ public class BadRequestExceptionHandler {
 		InvalidOtpException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -109,7 +120,7 @@ public class BadRequestExceptionHandler {
 		InvalidRequestException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -119,7 +130,7 @@ public class BadRequestExceptionHandler {
 		InvalidResetTokenException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -129,7 +140,7 @@ public class BadRequestExceptionHandler {
 		OtpExpiredException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -139,7 +150,7 @@ public class BadRequestExceptionHandler {
 		TokenExpiredException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse errorResponse = ErrorResponse.of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
 
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
@@ -149,7 +160,9 @@ public class BadRequestExceptionHandler {
 		HttpMessageNotReadableException exception,
 		HttpServletRequest request
 	) {
-		ErrorResponse response = ErrorResponse.of(BAD_REQUEST.value(), "Invalid request body. Please check your input and try again.", BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
+		ErrorResponse response = of(BAD_REQUEST.value(), "Invalid request body. Please check your input and try again" +
+				".", BAD_REQUEST.getReasonPhrase()
+			, request.getRequestURI());
 		return ResponseEntity.status(BAD_REQUEST).body(response);
 	}
 }
