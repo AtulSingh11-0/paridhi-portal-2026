@@ -69,7 +69,7 @@ public class User extends Auditable implements UserDetails {
 		orphanRemoval = true
 	)
 	@Builder.Default
-	private transient List< MRD > mrdRegistrations = new ArrayList<>();
+	private List< MRD > mrdRegistrations = new ArrayList<>();
 
 	@Column( name = "is_logged_in", nullable = false )
 	@Builder.Default

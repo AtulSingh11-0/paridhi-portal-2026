@@ -5,6 +5,9 @@ import com.megatronix.paridhi.constant.Year;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 @Getter
 @Setter
 @Entity
@@ -12,7 +15,11 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table ( name = "mrd_registrations" )
-public class MRD extends Auditable {
+public class MRD extends Auditable implements Serializable {
+
+	@Serial
+	private static final long serialVersionUID = 1L;
+
 	@Id
 	@GeneratedValue ( strategy = GenerationType.IDENTITY )
 	@Column ( name = "mrd_id", updatable = false, nullable = false )
