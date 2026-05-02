@@ -73,6 +73,7 @@ public class EventController {
 				        "id": 1,
 				        "domain": "CODING",
 				        "name": "Coding Master Combo",
+				        "type": "COMBO",
 				        "description": "Access to all coding events",
 				        "posterUrl": "https://ik.imagekit.io/...",
 				        "registrationFee": 400.00,

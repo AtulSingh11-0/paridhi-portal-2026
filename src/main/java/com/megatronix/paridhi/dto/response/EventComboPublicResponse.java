@@ -10,30 +10,33 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Builder
-@Schema(description = "Response payload for public event combo information")
+@Schema ( description = "Response payload for public event combo information" )
 public record EventComboPublicResponse(
-	@Schema(description = "Unique identifier of the combo", example = "1")
+	@Schema ( description = "Unique identifier of the combo", example = "1" )
 	Long id,
-	@Schema(description = "Domain of the combo", example = "CODING")
+	@Schema ( description = "Domain of the combo", example = "CODING" )
 	Domain domain,
-	@Schema(description = "Name of the combo", example = "Mega Coding Pack")
+	@Schema ( description = "Name of the combo", example = "Mega Coding Pack" )
 	String name,
-	@Schema(description = "Detailed description of the combo", example = "Includes Code-O-Fiesta and ProbleMatrix.")
+	@Schema ( description = "Type of the combo", example = "COMBO" )
+	String type,
+	@Schema ( description = "Detailed description of the combo", example = "Includes Code-O-Fiesta and ProbleMatrix." )
 	String description,
-	@Schema(description = "List of events included in this combo")
+	@Schema ( description = "List of events included in this combo" )
 	List< EventPublicResponse > events,
-	@Schema(description = "URL to the combo poster image", example = "https://ik.imagekit.io/...")
+	@Schema ( description = "URL to the combo poster image", example = "https://ik.imagekit.io/..." )
 	String posterUrl,
-	@Schema(description = "Discounted fee for the combo registration", example = "250.00")
+	@Schema ( description = "Discounted fee for the combo registration", example = "250.00" )
 	BigDecimal registrationFee,
 	@JsonProperty ( "isRegistrationOpen" )
-	@Schema(description = "Whether registration is currently open for this combo", example = "true")
+	@Schema ( description = "Whether registration is currently open for this combo", example = "true" )
 	boolean isRegistrationOpen
 ) {
 	public static EventComboPublicResponse fromCombo ( EventCombo combo ) {
 		return EventComboPublicResponse.builder()
 			.id(combo.getEventComboId())
 			.name(combo.getEventComboName())
+			.type("COMBO")
 			.description(combo.getEventComboDescription())
 			.domain(combo.getDomain())
 			.events(

@@ -18,6 +18,8 @@ public record EventComboAdminResponse(
 	Domain domain,
 	@Schema(description = "Name of the combo", example = "Mega Coding Pack")
 	String name,
+	@Schema ( description = "Type of the combo", example = "COMBO" )
+	String type,
 	@Schema(description = "Detailed description of the combo", example = "Includes all coding events.")
 	String description,
 	@Schema(description = "List of events included in this combo (Admin view)")
@@ -45,6 +47,7 @@ public record EventComboAdminResponse(
 			.id(combo.getEventComboId())
 			.domain(combo.getDomain())
 			.name(combo.getEventComboName())
+			.type("COMBO")
 			.description(combo.getEventComboDescription())
 			.events(
 				combo.getEvents().stream()

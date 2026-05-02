@@ -61,6 +61,7 @@ public class EventComboController {
 				        "id": 1,
 				        "domain": "CODING",
 				        "name": "Mega Coding Pack",
+				        "type": "COMBO",
 				        "description": "Includes all coding events.",
 				        "posterUrl": "https://ik.imagekit.io/...",
 				        "registrationFee": 250.00,
@@ -87,6 +88,7 @@ public class EventComboController {
 				  "id": 1,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
+				  "type": "COMBO",
 				  "description": "Includes all coding events.",
 				  "events": [
 				    {
@@ -142,6 +144,7 @@ public class EventComboController {
 				    "id": 1,
 				    "domain": "CODING",
 				    "name": "Mega Coding Pack",
+				    "type": "COMBO",
 				    "description": "Includes all coding events.",
 				    "posterUrl": "https://ik.imagekit.io/...",
 				    "registrationFee": 250.00,
@@ -174,6 +177,7 @@ public class EventComboController {
 				        "id": 1,
 				        "domain": "CODING",
 				        "name": "Mega Coding Pack",
+				        "type": "COMBO",
 				        "description": "Includes all coding events.",
 				        "posterUrl": "https://ik.imagekit.io/...",
 				        "registrationFee": 250.00,
@@ -217,12 +221,13 @@ public class EventComboController {
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
+				  "type": "COMBO",
 				  "description": "A package containing all major coding events.",
 				  "events": [
 				    {
 				      "id": 14,
 				      "domain": "CODING",
-				      "name": "Problematrx",
+				      "name": "ProbleMatrix",
 				      "type": "MAIN",
 				      "date": 1778839200.000000000,
 				      "description": "Algorithm contest.",
@@ -304,9 +309,10 @@ public class EventComboController {
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Updated Mega Pack",
+				  "type": "COMBO",
 				  "description": "Updated description for the pack.",
 				  "events": [
-				    { "id": 14, "name": "Problematrx" },
+				    { "id": 14, "name": "ProbleMatrix" },
 				    { "id": 15, "name": "CipherSiege" },
 				    { "id": 16, "name": "Code Warriors" }
 				  ],
@@ -363,6 +369,7 @@ public class EventComboController {
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
+				  "type": "COMBO",
 				  "isRegistrationOpen": true,
 				  "createdAt": 1778839200.000000000,
 				  "updatedAt": 1778839200.000000000,
@@ -395,6 +402,7 @@ public class EventComboController {
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
+				  "type": "COMBO",
 				  "posterUrl": "https://ik.imagekit.io/updated_combo.jpg",
 				  "posterFileId": "69e0d6...",
 				  "updatedAt": 1778839200.000000000,
@@ -426,8 +434,9 @@ public class EventComboController {
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
+				  "type": "COMBO",
 				  "events": [
-				    { "id": 14, "name": "Problematrx" },
+				    { "id": 14, "name": "ProbleMatrix" },
 				    { "id": 15, "name": "CipherSiege" },
 				    { "id": 16, "name": "Code Warriors" }
 				  ],
@@ -458,8 +467,9 @@ public class EventComboController {
 				  "id": 2,
 				  "domain": "CODING",
 				  "name": "Mega Coding Pack",
+				  "type": "COMBO",
 				  "events": [
-				    { "id": 14, "name": "Problematrx" },
+				    { "id": 14, "name": "ProbleMatrix" },
 				    { "id": 15, "name": "CipherSiege" }
 				  ],
 				  "updatedAt": 1778839200.000000000,
