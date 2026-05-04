@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -30,10 +32,14 @@ public class ParidhiPortal2025Application {
 
 	@GetMapping ( produces = "application/json;charset=UTF-8" )
 	public Map< String, String > home () {
+		ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
 		Map< String, String > response = new TreeMap<>();
 		response.put("chaupai-1", "जा पर कृपा राम की होई, ता पर कृपा करहिं सब कोई");
 		response.put("chaupai-2", "राम भगति मनि उर बस जाकें, दु:ख लवलेस न सपनेहुँ ताकें");
 		response.put("chaupai-3", "कवन सो काज कठिन जग माही, जो नहीं होइ तात तुम पाहीं");
+		response.put("status", "UP");
+		response.put("version", "1.0.0");
+		response.put("deployedAt", now.toString());
 
 		return response;
 	}
