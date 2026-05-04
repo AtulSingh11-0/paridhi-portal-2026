@@ -33,7 +33,7 @@ services:
             - paridhi-network
 
     app:
-#        image: ${DOCKER_USERNAME}/paridhi-portal-2026:v4.1
+        #        image: ${DOCKER_USERNAME}/paridhi-portal-2026:v4.1
         image: localdev/paridhi-portal-2026:v4.1
         container_name: paridhi-portal
         restart: unless-stopped
