@@ -26,6 +26,7 @@ import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
 import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.ACCESS_DENIED;
 import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.CONFLICT_ERROR;
+import static com.megatronix.paridhi.util.RandomUtil.getRandomProfilePic;
 import static java.lang.String.format;
 
 @Service
@@ -68,6 +69,7 @@ public class ProfileService {
 		existingUser.setYear(request.year());
 		existingUser.setDepartment(request.department());
 		existingUser.setRollNo(request.rollNo());
+		existingUser.setProfilePictureUrl(getRandomProfilePic());
 		existingUser.setProfileCreated(true);
 
 		// step-6: audit log the successful profile creation

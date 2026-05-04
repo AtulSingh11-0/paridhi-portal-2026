@@ -1,8 +1,6 @@
 package com.megatronix.paridhi.service;
 
-import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.Domain;
-import com.megatronix.paridhi.constant.Role;
 import com.megatronix.paridhi.dto.request.EventComboRequest;
 import com.megatronix.paridhi.dto.response.CategorizedEventComboResponse;
 import com.megatronix.paridhi.dto.response.EventComboAdminResponse;
@@ -10,14 +8,13 @@ import com.megatronix.paridhi.dto.response.EventComboPublicResponse;
 import com.megatronix.paridhi.dto.response.ImageUploadResult;
 import com.megatronix.paridhi.exception.ComboNotFoundException;
 import com.megatronix.paridhi.exception.EventNotFoundException;
-import com.megatronix.paridhi.exception.ForbiddenAccessException;
 import com.megatronix.paridhi.exception.InvalidDomainException;
 import com.megatronix.paridhi.model.Event;
 import com.megatronix.paridhi.model.EventCombo;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.EventComboRepository;
 import com.megatronix.paridhi.repository.EventRepository;
-import lombok.RequiredArgsConstructor;
+import com.megatronix.paridhi.util.AccessControlUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,13 +30,12 @@ import static com.megatronix.paridhi.constant.AppConstant.*;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
-import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.ACCESS_DENIED;
-import static com.megatronix.paridhi.util.LoggingUtil.*;
+import static com.megatronix.paridhi.util.LoggingUtil.logError;
+import static com.megatronix.paridhi.util.LoggingUtil.logOperation;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
 @Service
-@RequiredArgsConstructor
 public class EventComboService {
 
 	private static final Logger log = LoggerFactory.getLogger(EventComboService.class);
@@ -47,6 +43,16 @@ public class EventComboService {
 	private final EventComboRepository eventComboRepository;
 	private final EventRepository eventRepository;
 	private final ImageStorageService imageStorageService;
+
+	public EventComboService (
+		EventRepository eventRepository,
+		ImageStorageService imageStorageService,
+		EventComboRepository eventComboRepository
+	) {
+		this.eventRepository = eventRepository;
+		this.imageStorageService = imageStorageService;
+		this.eventComboRepository = eventComboRepository;
+	}
 
 	/*
 	 * public methods — doesn't require authentication
@@ -128,7 +134,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may create combos
-		checkUserAccess(user, COMBO_CREATE);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_CREATE, EVENT_COMBO);
 
 		// step-2: fetch the referenced events by their IDs
 		var events = eventRepository.findAllById(request.eventIds());
@@ -161,7 +167,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may update combos
-		checkUserAccess(user, COMBO_UPDATE);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_UPDATE, EVENT_COMBO);
 
 		// step-2: fetch the existing combo — throws ComboNotFoundException if missing
 		var combo = fetchEventComboById(id, user);
@@ -199,7 +205,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may update combo images
-		checkUserAccess(user, COMBO_IMAGE_UPDATE);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_IMAGE_UPDATE, COMBO_IMAGE);
 
 		// step-2: fetch the existing combo
 		var existingCombo = fetchEventComboById(id, user);
@@ -228,7 +234,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may delete combos
-		checkUserAccess(user, COMBO_DELETE);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_DELETE, EVENT_COMBO);
 
 		// step-2: fetch the existing combo — throws ComboNotFoundException if missing
 		var existingCombo = fetchEventComboById(id, user);
@@ -249,7 +255,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may toggle combo registration
-		checkUserAccess(user, COMBO_TOGGLE_REGISTRATION);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_TOGGLE_REGISTRATION, EVENT_COMBO);
 
 		// step-2: fetch the existing combo
 		var combo = fetchEventComboById(id, user);
@@ -277,7 +283,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may mutate combo membership
-		checkUserAccess(user, COMBO_ADD_EVENT);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_ADD_EVENT, EVENT_COMBO);
 
 		// step-2: fetch the combo and the event
 		var combo = fetchEventComboById(eventComboId, user);
@@ -306,7 +312,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may mutate combo membership
-		checkUserAccess(user, COMBO_REMOVE_EVENT);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_REMOVE_EVENT, EVENT_COMBO);
 
 		// step-2: fetch the combo and the event
 		var combo = fetchEventComboById(eventComboId, user);
@@ -358,27 +364,6 @@ public class EventComboService {
 				logError(log, READ, EVENT_COMBO, user, format(NOT_FOUND_LOG, EVENT, "ID", eventId), null);
 				return new EventNotFoundException(format(NOT_FOUND, EVENT));
 			});
-	}
-
-	private void checkUserAccess ( User user, String operation ) {
-		// step-1: reject unauthenticated requests outright
-		if ( user == null ) {
-			logSecurity(log, AppConstant.ACCESS_DENIED, null, FAILED,
-				format(AUTHENTICATION_REQUIRED, operation + " " + EVENT_COMBO));
-			throw new ForbiddenAccessException(ACCESS_DENIED);
-		}
-
-		// step-2: reject regular users — only ADMIN and above may perform combo mutations
-		if ( user.getRole().equals(Role.ROLE_USER) ) {
-			logSecurity(log, AppConstant.ACCESS_DENIED, user, FAILED,
-				format(NOT_AUTHORIZED, operation + " " + EVENT_COMBO));
-			throw new ForbiddenAccessException(ACCESS_DENIED);
-		}
-
-		// step-3: access is granted — log for observability at debug level
-		if ( log.isDebugEnabled() ) {
-			log.debug("Access granted to user: {} (ID: {}) for operation: {}", user.getEmail(), user.getUserId(), operation);
-		}
 	}
 
 	private void validateEvents ( EventComboRequest request, List< Event > events, Domain domain, User user, String operation ) {

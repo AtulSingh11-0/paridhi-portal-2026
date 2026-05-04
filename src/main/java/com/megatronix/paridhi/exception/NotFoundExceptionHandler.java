@@ -9,12 +9,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@Order(2)
+@Order ( 2 )
 @RestControllerAdvice
 public class NotFoundExceptionHandler {
 
 	@ExceptionHandler ( EntityNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleEntityNotFoundException (
+	public ResponseEntity< ErrorResponse > handleEntityNotFoundException (
 		EntityNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -24,7 +24,7 @@ public class NotFoundExceptionHandler {
 	}
 
 	@ExceptionHandler ( EventNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleEventNotFoundException (
+	public ResponseEntity< ErrorResponse > handleEventNotFoundException (
 		EventNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -34,7 +34,7 @@ public class NotFoundExceptionHandler {
 	}
 
 	@ExceptionHandler ( GIDNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleGIDNotFoundException (
+	public ResponseEntity< ErrorResponse > handleGIDNotFoundException (
 		GIDNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -44,7 +44,7 @@ public class NotFoundExceptionHandler {
 	}
 
 	@ExceptionHandler ( ResourceNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleResourceNotFoundException (
+	public ResponseEntity< ErrorResponse > handleResourceNotFoundException (
 		ResourceNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -54,7 +54,7 @@ public class NotFoundExceptionHandler {
 	}
 
 	@ExceptionHandler ( TeamNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleTeamNotFoundException (
+	public ResponseEntity< ErrorResponse > handleTeamNotFoundException (
 		TeamNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -64,7 +64,7 @@ public class NotFoundExceptionHandler {
 	}
 
 	@ExceptionHandler ( UserNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleUserNotFoundException (
+	public ResponseEntity< ErrorResponse > handleUserNotFoundException (
 		UserNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -73,38 +73,8 @@ public class NotFoundExceptionHandler {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
 	}
 
-	@ExceptionHandler ( DomainPosterNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleDomainPosterNotFoundException (
-		DomainPosterNotFoundException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.NOT_FOUND.value(), exception.getMessage(), HttpStatus.NOT_FOUND.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-	}
-
-	@ExceptionHandler ( TeamPhotoNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleTeamPhotoNotFoundException (
-		TeamPhotoNotFoundException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.NOT_FOUND.value(), exception.getMessage(), HttpStatus.NOT_FOUND.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-	}
-
-	@ExceptionHandler ( ContactQueryNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleContactQueryNotFoundException (
-		ContactQueryNotFoundException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.NOT_FOUND.value(), exception.getMessage(), HttpStatus.NOT_FOUND.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-	}
-
 	@ExceptionHandler ( ComboNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleComboNotFoundException (
+	public ResponseEntity< ErrorResponse > handleComboNotFoundException (
 		ComboNotFoundException exception,
 		HttpServletRequest request
 	) {
@@ -112,26 +82,4 @@ public class NotFoundExceptionHandler {
 
 		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
 	}
-
-	@ExceptionHandler ( GalleryNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleGalleryNotFoundException (
-		GalleryNotFoundException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.NOT_FOUND.value(), exception.getMessage(), HttpStatus.NOT_FOUND.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-	}
-
-	@ExceptionHandler ( MemberProfileNotFoundException.class )
-	public ResponseEntity<ErrorResponse> handleMemberProfileNotFoundException (
-		MemberProfileNotFoundException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.NOT_FOUND.value(), exception.getMessage(), HttpStatus.NOT_FOUND.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
-	}
-
-
 }

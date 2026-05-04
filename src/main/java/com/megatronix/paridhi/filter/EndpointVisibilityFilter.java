@@ -32,6 +32,7 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 		"/api/profiles",
 		"/api/events",
 		"/api/event-combos",
+		"/api/teams",
 		"/swagger-ui",
 		"/v3/api-docs"
 	);

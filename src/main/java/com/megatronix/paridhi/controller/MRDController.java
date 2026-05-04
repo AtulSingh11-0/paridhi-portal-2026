@@ -27,7 +27,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping ( "/api/mrd" )
-@Tag ( name = "MRD", description = "Endpoints for managing Maximum Registration Desk (MRD) registrations and Global IDs (GIDs)" )
+@Tag ( name = "MRD", description = "Endpoints for managing Maximum Registration Desk (MRD) registrations and General IDs (GIDs)" )
 public class MRDController {
 	private final MRDService mrdService;
 
@@ -155,7 +155,7 @@ public class MRDController {
 	@ApiResponse ( responseCode = "404", description = "MRD not found",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< MRDResponse > getMRDbyGID (
-		@Parameter ( description = "Global ID of the MRD", example = "PD-2026-0001" ) @PathVariable String gid,
+		@Parameter ( description = "General ID of the MRD", example = "PD-2026-0001" ) @PathVariable String gid,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
 	) {
 		return ResponseEntity.ok(mrdService.getMRDbyGID(gid, user));

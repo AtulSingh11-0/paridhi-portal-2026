@@ -45,16 +45,6 @@ public class BadRequestExceptionHandler {
 		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
 	}
 
-	@ExceptionHandler ( MemberProfileAlreadyExistsException.class )
-	public ResponseEntity< ErrorResponse > handleMemberProfileAlreadyExistsException (
-		MemberProfileAlreadyExistsException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
-	}
-
 	@ExceptionHandler ( EmailNotVerifiedException.class )
 	public ResponseEntity< ErrorResponse > handleEmailNotVerifiedException (
 		EmailNotVerifiedException exception,
@@ -68,16 +58,6 @@ public class BadRequestExceptionHandler {
 	@ExceptionHandler ( TeamRegistrationException.class )
 	public ResponseEntity< ErrorResponse > handleTeamRegistrationException (
 		TeamRegistrationException exception,
-		HttpServletRequest request
-	) {
-		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());
-
-		return ResponseEntity.status(BAD_REQUEST).body(errorResponse);
-	}
-
-	@ExceptionHandler ( DomainPosterAlreadyExistsExcpetion.class )
-	public ResponseEntity< ErrorResponse > handleDomainPosterAlreadyExistsException (
-		DomainPosterAlreadyExistsExcpetion exception,
 		HttpServletRequest request
 	) {
 		ErrorResponse errorResponse = of(BAD_REQUEST.value(), exception.getMessage(), BAD_REQUEST.getReasonPhrase(), request.getRequestURI());

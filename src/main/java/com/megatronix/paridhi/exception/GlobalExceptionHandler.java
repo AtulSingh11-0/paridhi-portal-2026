@@ -87,7 +87,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	) {
 		String expectedType = "unknown";
 		if ( exception.getRequiredType() != null ) {
-			expectedType = exception.getRequiredType().getSimpleName();
+			Class< ? > requiredType = exception.getRequiredType();
+			if ( requiredType != null ) {
+				expectedType = requiredType.getSimpleName();
+			}
 		}
 
 		ErrorResponse errorResponse = ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Invalid parameter type. Expected " +

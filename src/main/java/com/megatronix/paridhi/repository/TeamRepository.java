@@ -19,6 +19,9 @@ public interface TeamRepository extends JpaRepository< Team, Long > {
 	@Query ( "SELECT DISTINCT t FROM Team t JOIN t.gidList gid WHERE gid IN :gidList" )
 	List< Team > findByGidListWithContacts ( @Param ( "gidList" ) List< String > gidList );
 
+	@Query( "SELECT DISTINCT t FROM Team t JOIN t.gidList gid WHERE gid IN :gidList" )
+	List< Team> findByGidList ( List< String> gidList );
+
 	@EntityGraph ( attributePaths = {"contacts"} )
 	Optional< Team > findByTid ( String tid );
 

@@ -16,6 +16,7 @@ import java.util.List;
 @Builder
 @Schema(description = "Request payload for creating or updating an event")
 public record EventRequest(
+
 	@NotNull ( message = "Domain cannot be null" )
 	@Schema(description = "Domain of the event", example = "CODING")
 	Domain domain,

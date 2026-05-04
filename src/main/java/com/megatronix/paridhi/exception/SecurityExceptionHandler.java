@@ -13,14 +13,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@Order(1)
+@Order ( 1 )
 @RestControllerAdvice
 public class SecurityExceptionHandler {
 
 	/************************************************************** UNAUTHORIZED EXCEPTION's **************************************************************/
 
 	@ExceptionHandler ( BadCredentialsException.class )
-	public ResponseEntity<ErrorResponse> handleBadCredentialsException (
+	public ResponseEntity< ErrorResponse > handleBadCredentialsException (
 		BadCredentialsException exception,
 		HttpServletRequest request
 	) {
@@ -30,7 +30,7 @@ public class SecurityExceptionHandler {
 	}
 
 	@ExceptionHandler ( AuthenticationException.class )
-	public ResponseEntity<ErrorResponse> handleAuthenticationException (
+	public ResponseEntity< ErrorResponse > handleAuthenticationException (
 		AuthenticationException exception,
 		HttpServletRequest request
 	) {
@@ -40,7 +40,7 @@ public class SecurityExceptionHandler {
 	}
 
 	@ExceptionHandler ( JwtException.class )
-	public ResponseEntity<ErrorResponse> handleJwtException (
+	public ResponseEntity< ErrorResponse > handleJwtException (
 		JwtException exception,
 		HttpServletRequest request
 	) {
@@ -59,7 +59,7 @@ public class SecurityExceptionHandler {
 	/************************************************************** FORBIDDEN EXCEPTION's **************************************************************/
 
 	@ExceptionHandler ( RegistrationClosedException.class )
-	public ResponseEntity<ErrorResponse> handleRegistrationClosedException (
+	public ResponseEntity< ErrorResponse > handleRegistrationClosedException (
 		RegistrationClosedException exception,
 		HttpServletRequest request
 	) {
@@ -69,7 +69,7 @@ public class SecurityExceptionHandler {
 	}
 
 	@ExceptionHandler ( AccessDeniedException.class )
-	public ResponseEntity<ErrorResponse> handleAccessDeniedException (
+	public ResponseEntity< ErrorResponse > handleAccessDeniedException (
 		AccessDeniedException exception,
 		HttpServletRequest request
 	) {
@@ -79,7 +79,7 @@ public class SecurityExceptionHandler {
 	}
 
 	@ExceptionHandler ( ForbiddenAccessException.class )
-	public ResponseEntity<ErrorResponse> handleForbiddenAccessException (
+	public ResponseEntity< ErrorResponse > handleForbiddenAccessException (
 		ForbiddenAccessException exception,
 		HttpServletRequest request
 	) {

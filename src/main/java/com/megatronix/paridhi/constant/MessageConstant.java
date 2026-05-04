@@ -41,6 +41,19 @@ public final class MessageConstant {
 		public static final String COMBO_ADD_EVENT = "COMBO_ADD_EVENT";
 		public static final String COMBO_REMOVE_EVENT = "COMBO_REMOVE_EVENT";
 
+		// MRD operations
+		public static final String MRD_REGISTER = "MRD_REGISTER";
+		public static final String MRD_REGISTER_BY_ADMIN = "MRD_REGISTER_BY_ADMIN";
+		public static final String MRD_PAYMENT_UPDATE = "MRD_PAYMENT_UPDATE";
+
+		// TEAM operations
+		public static final String TEAM_REGISTER = "TEAM_REGISTER";
+		public static final String TEAM_COMBO_REGISTER = "TEAM_COMBO_REGISTER";
+		public static final String TEAM_PAYMENT_UPDATE = "TEAM_PAYMENT_UPDATE";
+		public static final String TEAM_PLAYED_UPDATE = "TEAM_PLAYED_UPDATE";
+		public static final String TEAM_QUALIFIED_UPDATE = "TEAM_QUALIFIED_UPDATE";
+		public static final String TEAM_POSITION_UPDATE = "TEAM_POSITION_UPDATE";
+
 		// OTP operations
 		public static final String OTP_GENERATE = "OTP_GENERATE";
 		public static final String OTP_VERIFY = "OTP_VERIFY";
@@ -215,6 +228,41 @@ public final class MessageConstant {
 		public static final String COMBO_EVENT_REMOVED = "Event '%s' (ID: %s) removed from combo '%s' (ID: %s) by user: %s (ID: %s).";
 		public static final String COMBO_DOMAIN_MISMATCH = "Domain mismatch: event domain '%s' != combo domain '%s'. Cannot add event ID: %s to combo ID: %s.";
 		public static final String COMBO_MIN_SIZE_VIOLATED = "Cannot remove event ID: %s from combo ID: %s — combo would fall below minimum of 2 events.";
+
+		// MRD messages
+		public static final String MRD_REGISTERED = "MRD registered for user: %s (ID: %s) — GID: %s.";
+		public static final String MRD_REGISTERED_BY_ADMIN = "Admin-initiated MRD registration for email: %s — GID: %s.";
+		public static final String MRD_USER_CREATED_BY_ADMIN = "New user account created by admin for: %s.";
+		public static final String MRD_PAYMENT_UPDATED = "Payment status toggled for GID: %s — new status: %s. By user: %s (ID: %s).";
+		public static final String MRD_FETCHED = "MRD fetched — GID: %s. By user: %s (ID: %s).";
+		public static final String MRDS_FETCHED = "%d MRD(s) fetched for email: %s. By user: %s (ID: %s).";
+		public static final String MRDS_ALL_FETCHED = "%d total MRD(s) fetched. By user: %s (ID: %s).";
+		public static final String MRD_GID_NOT_FOUND = "MRD not found with GID: %s.";
+		public static final String MRD_EMAIL_NOT_VERIFIED = "MRD registration blocked — email not verified for user: %s (ID: %s).";
+		public static final String MRD_PROFILE_NOT_CREATED = "MRD registration blocked — profile not created for user: %s (ID: %s).";
+		public static final String GIDS_FETCHED = "%d GID(s) fetched for email: %s. By user: %s (ID: %s).";
+
+		// Team messages
+		public static final String TEAM_REGISTERED = "Team '%s' (TID: %s) registered for event: %s. By user: %s (ID: %s).";
+		public static final String TEAM_REGISTERED_COMBO = "Team '%s' (TID: %s) registered for combo event: %s. By user: %s (ID: %s).";
+		public static final String TEAM_PAYMENT_UPDATED = "Payment status toggled for TID: %s — new status: %s. By user: %s (ID: %s).";
+		public static final String TEAM_PLAYED_UPDATED = "Played status toggled for TID: %s — new status: %s. By user: %s (ID: %s).";
+		public static final String TEAM_QUALIFIED_UPDATED = "Qualified status toggled for TID: %s — new status: %s. By user: %s (ID: %s).";
+		public static final String TEAM_POSITION_UPDATED = "Position updated for TID: %s — new position: %s. By user: %s (ID: %s).";
+		public static final String TEAM_FETCHED = "Team fetched — TID: %s. By user: %s (ID: %s).";
+		public static final String TEAMS_FETCHED = "%d Team(s) fetched for %s. By user: %s (ID: %s).";
+		public static final String TEAM_NOT_FOUND = "Team not found with TID: %s.";
+		public static final String TEAMS_NOT_FOUND_FOR_USER = "No teams found for user email: %s.";
+		public static final String TEAM_REGISTRATION_CLOSED = "Registration is closed for event/combo: %s.";
+		public static final String TEAM_NAME_EXISTS = "Team name '%s' already exists for event: %s.";
+		public static final String TEAM_SIZE_INVALID = "Team size '%d' must be between %d and %d for event: %s.";
+		public static final String TEAM_DUPLICATE_GID = "Duplicate GIDs found in request.";
+		public static final String TEAM_INVALID_GID = "Invalid GID: %s.";
+		public static final String TEAM_ALREADY_REGISTERED_GID = "GID '%s' is already registered for event: %s.";
+		public static final String TEAM_MISSING_COMBO_GIDS = "Missing GID list for events in combo: %s.";
+		public static final String TEAM_PLAYED_FAILED_NOT_PAID = "Team must have paid to update played status. TID: %s.";
+		public static final String TEAM_QUALIFICATION_FAILED_NOT_PLAYED = "Team must have played to update qualified status. TID: %s.";
+		public static final String TEAM_POSITION_FAILED_NOT_QUALIFIED = "Team must be qualified to update position. TID: %s.";
 
 		// User profile messages
 		public static final String PROFILE_CREATED = "Profile created for user: %s (ID: %d)";

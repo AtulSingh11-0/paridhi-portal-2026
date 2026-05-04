@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Pattern;
 
 @Schema ( description = "Request payload for verifying an OTP" )
 public record OtpVerificationRequest(
+
 	@NotBlank ( message = "Email cannot be empty" )
 	@Email ( message = "Email should be valid" )
 	@Schema ( description = "User's email address", example = "john.doe@example.com" )

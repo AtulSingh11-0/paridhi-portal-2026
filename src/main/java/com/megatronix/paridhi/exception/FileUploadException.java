@@ -1,11 +1,12 @@
 package com.megatronix.paridhi.exception;
 
 public class FileUploadException extends RuntimeException {
-	public FileUploadException(String message) {
+
+	public FileUploadException ( String message ) {
 		super(message);
 	}
 
-	public FileUploadException(String message, Throwable cause) {
+	public FileUploadException ( String message, Throwable cause ) {
 		super(message, cause);
 	}
 }

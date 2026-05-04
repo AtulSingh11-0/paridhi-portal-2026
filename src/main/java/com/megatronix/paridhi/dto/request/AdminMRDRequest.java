@@ -16,35 +16,36 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(description = "Request payload for registering an MRD by an admin")
+@Schema ( description = "Request payload for registering an MRD by an admin" )
 public class AdminMRDRequest {
-	@NotBlank(message = "Email is required")
-	@Email(message = "Email should be valid")
-	@Schema(description = "Email of the user being registered", example = "john@doe.com")
+
+	@NotBlank ( message = "Email is required" )
+	@Email ( message = "Email should be valid" )
+	@Schema ( description = "Email of the user being registered", example = "john@doe.com" )
 	private String email;
 
-	@NotBlank(message = "Name is required")
-	@Schema(description = "Full name of the user", example = "John Doe")
+	@NotBlank ( message = "Name is required" )
+	@Schema ( description = "Full name of the user", example = "John Doe" )
 	private String name;
 
-	@NotBlank(message = "Contact number is required")
-	@Pattern(regexp = "^\\d{10}$", message = "Contact must be 10 digits")
-	@Schema(description = "10-digit contact number", example = "9876543210")
+	@NotBlank ( message = "Contact number is required" )
+	@Pattern ( regexp = "^\\d{10}$", message = "Contact must be 10 digits" )
+	@Schema ( description = "10-digit contact number", example = "9876543210" )
 	private String contact;
 
-	@NotBlank(message = "College is required")
-	@Schema(description = "Name of the college", example = "MSIT")
+	@NotBlank ( message = "College is required" )
+	@Schema ( description = "Name of the college", example = "MSIT" )
 	private String college;
 
-	@NotNull(message = "Year is required")
-	@Schema(description = "Current academic year of the user", example = "FIRST")
+	@NotNull ( message = "Year is required" )
+	@Schema ( description = "Current academic year of the user", example = "FIRST" )
 	private Year year;
 
-	@NotNull(message = "Department is required")
-	@Schema(description = "Academic department of the user", example = "CSE")
+	@NotNull ( message = "Department is required" )
+	@Schema ( description = "Academic department of the user", example = "CSE" )
 	private Department department;
 
-	@NotBlank(message = "Roll number is required")
-	@Schema(description = "College roll number or university registration number", example = "12345678901")
+	@NotBlank ( message = "Roll number is required" )
+	@Schema ( description = "College roll number or university registration number", example = "12345678901" )
 	private String rollNo;
 }
