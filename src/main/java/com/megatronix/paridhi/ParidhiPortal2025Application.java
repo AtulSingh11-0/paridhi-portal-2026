@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +15,6 @@ import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.TreeMap;
 
-@EnableAsync
 @EnableWebMvc
 @RestController
 @EnableScheduling
@@ -25,15 +23,15 @@ import java.util.TreeMap;
 public class ParidhiPortal2025Application {
 	private static final Logger log = LoggerFactory.getLogger(ParidhiPortal2025Application.class);
 
-	public static void main ( String[] args ) {
+	public static void main(String[] args) {
 		SpringApplication.run(ParidhiPortal2025Application.class, args);
 		log.info("Portal successfully running on http://localhost:8080");
 	}
 
-	@GetMapping ( produces = "application/json;charset=UTF-8" )
-	public Map< String, String > home () {
+	@GetMapping(produces = "application/json;charset=UTF-8")
+	public Map<String, String> home() {
 		ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
-		Map< String, String > response = new TreeMap<>();
+		Map<String, String> response = new TreeMap<>();
 		response.put("chaupai-1", "जा पर कृपा राम की होई, ता पर कृपा करहिं सब कोई");
 		response.put("chaupai-2", "राम भगति मनि उर बस जाकें, दु:ख लवलेस न सपनेहुँ ताकें");
 		response.put("chaupai-3", "कवन सो काज कठिन जग माही, जो नहीं होइ तात तुम पाहीं");
