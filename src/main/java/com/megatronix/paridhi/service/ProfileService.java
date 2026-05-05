@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.*;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.PROFILE;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.USER;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -108,7 +110,7 @@ public class ProfileService {
 
 		// step-1: security — explicit ADMIN check to prevent regular users from listing all profiles
 		if ( user.getRole() == Role.ROLE_USER ) {
-			LoggingUtil.logSecurity(log, AppConstant.ACCESS_DENIED, user, FAILED, "Unauthorized attempt to list all profiles");
+			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, user, FAILED, "Unauthorized attempt to list all profiles");
 			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}
 
@@ -167,7 +169,7 @@ public class ProfileService {
 
 		// allow ADMIN or the owner of the ID
 		if ( authUser.getRole() == Role.ROLE_USER && ! authUser.getUserId().equals(targetId) ) {
-			LoggingUtil.logSecurity(log, AppConstant.ACCESS_DENIED, authUser, FAILED, format(IDOR_ATTEMPT, authUser.getEmail(), authUser.getUserId(), operation, "another user", targetId));
+			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, authUser, FAILED, format(IDOR_ATTEMPT, authUser.getEmail(), authUser.getUserId(), operation, "another user", targetId));
 			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}
 	}
@@ -177,7 +179,7 @@ public class ProfileService {
 
 		// allow ADMIN or the owner of the email
 		if ( authUser.getRole() == Role.ROLE_USER && ! authUser.getEmail().equals(targetEmail) ) {
-			LoggingUtil.logSecurity(log, AppConstant.ACCESS_DENIED, authUser, FAILED, format(IDOR_ATTEMPT, authUser.getEmail(), authUser.getUserId(), CREATE, targetEmail, "N/A"));
+			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, authUser, FAILED, format(IDOR_ATTEMPT, authUser.getEmail(), authUser.getUserId(), CREATE, targetEmail, "N/A"));
 			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}
 	}

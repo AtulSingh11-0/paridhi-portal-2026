@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.EmailType;
 import com.megatronix.paridhi.constant.Position;
 import com.megatronix.paridhi.dto.request.EventComboTeamRequest;
@@ -28,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.*;
 import static com.megatronix.paridhi.constant.EmailType.*;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
@@ -179,7 +180,7 @@ public class TeamService {
 
 		// step-2: guard — check combo registration status
 		if ( ! combo.isEventComboRegistrationOpen() ) {
-			logError(log, TEAM_COMBO_REGISTER, EVENT_COMBO, user, format(TEAM_REGISTRATION_CLOSED, combo.getEventComboName()), null);
+			logError(log, TEAM_COMBO_REGISTER, AppConstant.Resource.COMBO, user, format(TEAM_REGISTRATION_CLOSED, combo.getEventComboName()), null);
 			throw new TeamRegistrationException(format(REGISTRATION_CLOSED, COMBO, combo.getEventComboName()));
 		}
 
@@ -189,7 +190,7 @@ public class TeamService {
 			.collect(Collectors.toSet());
 
 		if ( ! request.eventGidMap().keySet().containsAll(comboEventIds) ) {
-			logError(log, TEAM_COMBO_REGISTER, EVENT_COMBO, user, format(TEAM_MISSING_COMBO_GIDS, combo.getEventComboName()), null);
+			logError(log, TEAM_COMBO_REGISTER, AppConstant.Resource.COMBO, user, format(TEAM_MISSING_COMBO_GIDS, combo.getEventComboName()), null);
 			throw new TeamRegistrationException(format(MISSING_GID_LIST, COMBO, combo.getEventComboName()));
 		}
 
@@ -208,7 +209,7 @@ public class TeamService {
 		}
 
 		if ( teamResponses.isEmpty() ) {
-			logError(log, TEAM_COMBO_REGISTER, EVENT_COMBO, user, "Failed to register teams for combo: " + combo.getEventComboName(), null);
+			logError(log, TEAM_COMBO_REGISTER, AppConstant.Resource.COMBO, user, "Failed to register teams for combo: " + combo.getEventComboName(), null);
 			throw new TeamRegistrationException("No teams registered for combo: " + combo.getEventComboName());
 		}
 
@@ -392,7 +393,7 @@ public class TeamService {
 		// step-4: mutate and optionally notify
 		team.setHasQualified(! team.isHasQualified());
 		if ( team.isHasQualified() ) {
-			triggerEmailNotification(team, QUALIFICATION);
+			triggerEmailNotification(team, QUALIFICATION, user);
 		}
 
 		// step-5: audit log the successful toggle
@@ -426,7 +427,7 @@ public class TeamService {
 
 		boolean isWinningPosition = position != null && position != Position.NONE;
 		if ( isWinningPosition && position != previousPosition ) {
-			triggerEmailNotification(team, POSITION);
+			triggerEmailNotification(team, POSITION, user);
 		}
 
 		// step-5: audit log
@@ -490,7 +491,7 @@ public class TeamService {
 			log.debug("Persisted team TID {} for event {}", savedTeam.getTid(), event.getEventName());
 		}
 
-		triggerEmailNotification(savedTeam, REGISTRATION);
+		triggerEmailNotification(savedTeam, REGISTRATION, user);
 
 		return savedTeam;
 	}
@@ -523,7 +524,7 @@ public class TeamService {
 	private EventCombo fetchComboById ( Long comboId, User user ) {
 		return eventComboRepository.findById(comboId)
 			.orElseThrow(() -> {
-				logError(log, READ, EVENT_COMBO, user, format(NOT_FOUND_LOG, EVENT_COMBO, "ID", comboId), null);
+				logError(log, READ, AppConstant.Resource.COMBO, user, format(NOT_FOUND_LOG, AppConstant.Resource.COMBO, "ID", comboId), null);
 				return new ComboNotFoundException(format(NOT_FOUND, COMBO));
 			});
 	}
@@ -538,12 +539,12 @@ public class TeamService {
 	}
 
 
-	private void triggerEmailNotification ( Team team, EmailType type ) {
+	private void triggerEmailNotification ( Team team, EmailType type, User user ) {
 		// fetch emails of all the team members registered with GID
 		List< String > teamMemberEmails = mrdRepository.findUserEmailListByGidList(team.getGidList());
 		String[] emailArray = teamMemberEmails.toArray(new String[0]);
 
-		type.sendEmail(emailService, emailArray, team);
+		type.sendEmail(emailService, emailArray, team, user);
 	}
 
 	private void verifyGidOwnership ( String gid, String email, User user ) {

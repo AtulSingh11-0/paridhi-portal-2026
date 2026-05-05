@@ -9,13 +9,17 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
-import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.EMAIL;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.USER;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_FOUND;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_FOUND_LOG;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.USER_LOGIN;
 import static java.lang.String.format;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
+
 	private static final Logger log = LoggerFactory.getLogger(UserDetailsServiceImpl.class);
 	private final UserRepository userRepository;
 
@@ -32,7 +36,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 		// step-1: attempt to fetch the USER from the DB by email
 		return userRepository.findUserByEmail(username)
 			.orElseThrow(() -> {
-				LoggingUtil.logSecurity(log, USER_LOGIN, null, FAILED, format(NOT_FOUND_LOG, USER, MAIL, username));
+				LoggingUtil.logSecurity(log, USER_LOGIN, null, FAILED, format(NOT_FOUND_LOG, USER, EMAIL, username));
 				return new UsernameNotFoundException(format(NOT_FOUND, USER));
 			});
 	}

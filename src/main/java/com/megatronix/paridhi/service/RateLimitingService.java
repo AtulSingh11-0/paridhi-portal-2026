@@ -33,7 +33,7 @@ public class RateLimitingService {
 		String strikeKey = "strikes:" + clientKey;
 		String penaltyKey = "penalty:" + clientKey;
 
-		// increment strikes, if doesnt exist then start from 1
+		// increment strikes, if it doesn't exist then start from 1
 		Long strikes = stringRedisTemplate.opsForValue().increment(strikeKey);
 		if ( strikes == null ) strikes = 1L;
 
@@ -52,10 +52,6 @@ public class RateLimitingService {
 		log.warn("Applying Strike {} to client {}. Banned for {} minutes.", strikes, clientKey, penaltyDuration.toMinutes());
 		stringRedisTemplate.opsForValue().set(penaltyKey, "true", penaltyDuration);
 	}
-
-	/*public void applyPenalty ( String ipAddress ) {
-		stringRedisTemplate.opsForValue().set("penalty:" + ipAddress, "true", ofMinutes(PENALTY_DURATION_MINUTES));
-	}*/
 
 	public Bucket resolveBucket ( String clientKey ) {
 		// dynamic rate limiting based on trust tier

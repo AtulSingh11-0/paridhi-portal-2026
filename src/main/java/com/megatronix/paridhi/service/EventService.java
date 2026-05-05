@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.Domain;
 import com.megatronix.paridhi.constant.EventType;
 import com.megatronix.paridhi.dto.request.EventRequest;
@@ -19,10 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.*;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.EVENT;
+import static com.megatronix.paridhi.constant.AppConstant.Storage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_FOUND;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.TEAM_SIZE;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
@@ -80,7 +84,7 @@ public class EventService {
 
 		// step-3: group combos by domain using a case-insensitive sorted map
 		Map< String, List< EventComboPublicResponse > > combosByDomain = combos.stream()
-			.map(EventComboPublicResponse::fromCombo)
+			.map(this::apply)
 			.collect(Collectors.groupingBy(
 				c -> c.domain().name(),
 				() -> new TreeMap<>(CASE_INSENSITIVE_ORDER),
@@ -378,6 +382,21 @@ public class EventService {
 			});
 	}
 
+	private Instant getEventComboDate ( EventCombo combo ) {
+		return combo.getEvents().stream()
+			.map(Event::getEventDate)
+			.min(Instant::compareTo)
+			.orElse(Instant.now());
+	}
+
+	private String getEventComboVenue ( EventCombo combo ) {
+		return combo.getEvents().stream()
+			.map(Event::getEventVenue)
+			.filter(venue -> venue != null && ! venue.isBlank())
+			.findFirst()
+			.orElse("TBD");
+	}
+
 	private void validatePlayerLimits ( EventRequest request ) {
 		if ( request.minPlayers() > request.maxPlayers() ) {
 			throw new IllegalArgumentException(
@@ -408,7 +427,7 @@ public class EventService {
 					// step-3a: combo is invalid with fewer than 2 events — delete it
 					eventComboRepository.delete(combo);
 					if ( log.isInfoEnabled() ) {
-						logOperation(log, EVENT_DELETE, EVENT_COMBO, user,
+						logOperation(log, EVENT_DELETE, AppConstant.Resource.COMBO, user,
 							format(EVENT_COMBO_DELETED, combo.getEventComboId()));
 					}
 				} else {
@@ -417,7 +436,7 @@ public class EventService {
 				}
 			}
 			if ( log.isInfoEnabled() ) {
-				logOperation(log, EVENT_DELETE, EVENT_COMBO, user,
+				logOperation(log, EVENT_DELETE, AppConstant.Resource.COMBO, user,
 					format(EVENT_COMBOS_UPDATED, combos.size(), existingEvent.getEventName(), eventId));
 			}
 		}
@@ -432,5 +451,9 @@ public class EventService {
 					format(EVENT_IMAGE_DELETE_FAILED, eventId, e.getMessage()), e);
 			}
 		}
+	}
+
+	private EventComboPublicResponse apply ( EventCombo combo ) {
+		return EventComboPublicResponse.fromCombo(combo, getEventComboDate(combo), getEventComboVenue(combo));
 	}
 }

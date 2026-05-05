@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.dto.request.PasswordResetConfirmationRequest;
 import com.megatronix.paridhi.dto.request.PasswordResetRequest;
 import com.megatronix.paridhi.dto.response.MessageResponse;
@@ -21,7 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
+import static com.megatronix.paridhi.constant.AppConstant.Common.SUCCESS;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.EMAIL;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.USER;
+import static com.megatronix.paridhi.constant.AppConstant.Service.PASSWORD_RESET;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -44,7 +49,8 @@ public class PasswordResetService {
 		EmailService emailService,
 		UserRepository userRepository,
 		BCryptPasswordEncoder passwordEncoder,
-		PasswordResetTokenRepository passwordResetTokenRepository ) {
+		PasswordResetTokenRepository passwordResetTokenRepository
+	) {
 		this.emailService = emailService;
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
@@ -64,8 +70,9 @@ public class PasswordResetService {
 
 		// step-2: guard — prevent user enumeration by returning generic success even if user not found
 		if ( userOpt.isEmpty() ) {
-			LoggingUtil.logSecurity(log, PASSWORD_RESET_REQUEST, null, FAILED, format(NOT_FOUND_LOG, USER, MAIL, email));
-			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, PASSWORD_RESET));
+			LoggingUtil.logSecurity(log, PASSWORD_RESET_REQUEST, null, FAILED, format(NOT_FOUND_LOG, USER, EMAIL,
+				email));
+			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.PASSWORD_RESET));
 		}
 
 		User user = userOpt.get();
@@ -84,8 +91,8 @@ public class PasswordResetService {
 		}
 
 		// step-5: dispatch the reset token via email
-		emailService.sendPasswordResetToken(user.getEmail(), user.getName(), savedResetToken.getToken());
-		LoggingUtil.logOperation(log, PASSWORD_RESET_REQUEST, PASSWORD_RESET_SERVICE, user,
+		emailService.sendPasswordResetToken(user.getEmail(), user.getName(), savedResetToken.getToken(), user);
+		LoggingUtil.logOperation(log, PASSWORD_RESET_REQUEST, PASSWORD_RESET, user,
 			format(PASSWORD_RESET_SENT_LOG, email));
 
 		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, PASSWORD_RESET));
@@ -104,15 +111,15 @@ public class PasswordResetService {
 		// step-1: fetch the USER from the DB by email
 		User user = userRepository.findUserByEmail(email)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, PASSWORD_RESET_SERVICE, null,
-					format(NOT_FOUND_LOG, USER, MAIL, email), null);
+				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, PASSWORD_RESET, null,
+					format(NOT_FOUND_LOG, USER, EMAIL, email), null);
 				return new InvalidResetTokenException(PASSWORD_RESET_TOKEN_INVALID_OR_EXPIRED);
 			});
 
 		// step-2: fetch the most recent reset token for this USER
 		PasswordResetToken latestToken = passwordResetTokenRepository.findFirstByUserOrderByCreatedAtDesc(user)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, PASSWORD_RESET_SERVICE, user,
+				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, PASSWORD_RESET, user,
 					format(PASSWORD_RESET_TOKEN_NOT_FOUND, email), null);
 				return new InvalidResetTokenException(PASSWORD_RESET_TOKEN_INVALID_OR_EXPIRED);
 			});
@@ -162,7 +169,7 @@ public class PasswordResetService {
 
 		// step-2: guard — reject if token not found or in invalid state (expired / used / locked)
 		if ( tokenOpt.isEmpty() ) {
-			LoggingUtil.logError(log, PASSWORD_RESET_VALIDATE, PASSWORD_RESET_SERVICE, null, format(PASSWORD_RESET_TOKEN_NOT_FOUND, token), null);
+			LoggingUtil.logError(log, PASSWORD_RESET_VALIDATE, PASSWORD_RESET, null, format(PASSWORD_RESET_TOKEN_NOT_FOUND, token), null);
 			throw new InvalidResetTokenException(PASSWORD_RESET_TOKEN_INVALID_OR_EXPIRED);
 		}
 
@@ -172,7 +179,7 @@ public class PasswordResetService {
 
 		if ( isValid ) {
 			User user = resetToken.getUser();
-			LoggingUtil.logOperation(log, PASSWORD_RESET_VALIDATE, PASSWORD_RESET_SERVICE, user,
+			LoggingUtil.logOperation(log, PASSWORD_RESET_VALIDATE, PASSWORD_RESET, user,
 				format(PASSWORD_RESET_VALIDATED_LOG, user.getEmail()));
 			return TokenValidationResponse.valid(null);
 		}

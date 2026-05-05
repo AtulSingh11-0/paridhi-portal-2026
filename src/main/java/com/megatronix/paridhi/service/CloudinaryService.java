@@ -55,7 +55,7 @@ public class CloudinaryService implements ImageStorageService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.CREATE,
-			AppConstant.CLOUDINARY_SERVICE,
+			AppConstant.Service.CLOUDINARY,
 			null,
 			String.format("Uploading file: %s (%d bytes) to folder: %s", safeFileName, file.getSize(), targetFolder)
 		);
@@ -66,24 +66,24 @@ public class CloudinaryService implements ImageStorageService {
 				.upload(
 					file.getBytes(),
 					ObjectUtils.asMap(
-						AppConstant.PUBLIC_ID, publicId,
-						AppConstant.CLOUDINARY_RESOURCE_TYPE, AppConstant.IMAGE,
-						AppConstant.FOLDER_KEY, targetFolder,
-						AppConstant.OVERWRITE_KEY, true
+						AppConstant.Storage.PUBLIC_ID, publicId,
+						AppConstant.Storage.RESOURCE_TYPE, AppConstant.Storage.IMAGE,
+						AppConstant.Storage.FOLDER, targetFolder,
+						AppConstant.Storage.OVERWRITE, true
 					)
 				);
 
 			// get the secure URL of the uploaded file
-			String secureUrl = (String) uploadResult.get(AppConstant.SECURE_URL);
+			String secureUrl = (String) uploadResult.get(AppConstant.Storage.SECURE_URL);
 			String fullPublicId = targetFolder + "/" + publicId;
 
 			// log the successful upload
 			LoggingUtil.logOperation(
 				log,
 				MessageConstant.Operation.CREATE,
-				AppConstant.CLOUDINARY_SERVICE,
+				AppConstant.Service.CLOUDINARY,
 				null,
-				String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.CLOUDINARY_IMAGE, fullPublicId)
+				String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.Storage.CLOUDINARY_IMAGE, fullPublicId)
 			);
 
 			// 3. return standardized DTO
@@ -93,7 +93,7 @@ public class CloudinaryService implements ImageStorageService {
 			LoggingUtil.logError(
 				log,
 				MessageConstant.Operation.CREATE,
-				AppConstant.CLOUDINARY_SERVICE,
+				AppConstant.Service.CLOUDINARY,
 				null,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "upload file", file.getOriginalFilename(), e.getMessage()),
 				e
@@ -117,7 +117,7 @@ public class CloudinaryService implements ImageStorageService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.DELETE,
-			AppConstant.CLOUDINARY_SERVICE,
+			AppConstant.Service.CLOUDINARY,
 			null,
 			String.format("Deleting file from Cloudinary with public ID: %s", fileId)
 		);
@@ -128,8 +128,8 @@ public class CloudinaryService implements ImageStorageService {
 				.destroy(
 					fileId,
 					ObjectUtils.asMap(
-						AppConstant.RESOURCE_TYPE, AppConstant.IMAGE,
-						AppConstant.INVALIDATE_KEY, true
+						AppConstant.Storage.RESOURCE_TYPE, AppConstant.Storage.IMAGE,
+						AppConstant.Storage.INVALIDATE, true
 					)
 				);
 
@@ -137,16 +137,16 @@ public class CloudinaryService implements ImageStorageService {
 			LoggingUtil.logOperation(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.CLOUDINARY_SERVICE,
+				AppConstant.Service.CLOUDINARY,
 				null,
-				String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.CLOUDINARY_IMAGE, fileId)
+				String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.Storage.CLOUDINARY_IMAGE, fileId)
 			);
 		} catch ( IOException e ) {
 			// log the error
 			LoggingUtil.logError(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.CLOUDINARY_SERVICE,
+				AppConstant.Service.CLOUDINARY,
 				null,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "delete file", fileId, e.getMessage()),
 				e

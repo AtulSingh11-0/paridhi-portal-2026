@@ -41,7 +41,7 @@ public class ImageKitService implements ImageStorageService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.CREATE,
-			AppConstant.IMAGEKIT_SERVICE,
+			AppConstant.Service.IMAGEKIT,
 			null,
 			String.format("Uploading file: %s (%d bytes) to folder: %s", safeFileName, file.getSize(), targetFolder)
 		);
@@ -57,9 +57,9 @@ public class ImageKitService implements ImageStorageService {
 			LoggingUtil.logOperation(
 				log,
 				MessageConstant.Operation.CREATE,
-				AppConstant.IMAGEKIT_SERVICE,
+				AppConstant.Service.IMAGEKIT,
 				null,
-				String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.IMAGEKIT_IMAGE, result.getFileId())
+				String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.Storage.IMAGEKIT_IMAGE, result.getFileId())
 			);
 
 			// 3. return standardized DTO
@@ -69,7 +69,7 @@ public class ImageKitService implements ImageStorageService {
 			LoggingUtil.logError(
 				log,
 				MessageConstant.Operation.CREATE,
-				AppConstant.IMAGEKIT_SERVICE,
+				AppConstant.Service.IMAGEKIT,
 				null,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "upload file", safeFileName, e.getMessage()),
 				e
@@ -86,7 +86,7 @@ public class ImageKitService implements ImageStorageService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.DELETE,
-			AppConstant.IMAGEKIT_SERVICE,
+			AppConstant.Service.IMAGEKIT,
 			null,
 			String.format("Deleting file from ImageKit with FileID: %s", fileId)
 		);
@@ -97,16 +97,16 @@ public class ImageKitService implements ImageStorageService {
 			LoggingUtil.logOperation(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.IMAGEKIT_SERVICE,
+				AppConstant.Service.IMAGEKIT,
 				null,
-				String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.IMAGEKIT_IMAGE, fileId)
+				String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.Storage.IMAGEKIT_IMAGE, fileId)
 			);
 		} catch ( Exception e ) {
 			// log the error
 			LoggingUtil.logError(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.IMAGEKIT_SERVICE,
+				AppConstant.Service.IMAGEKIT,
 				null,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "delete file", fileId, e.getMessage()),
 				e

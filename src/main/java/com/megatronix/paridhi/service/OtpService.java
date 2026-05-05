@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.dto.request.OtpRequest;
 import com.megatronix.paridhi.dto.request.OtpVerificationRequest;
@@ -26,7 +27,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
+import static com.megatronix.paridhi.constant.AppConstant.Common.SUCCESS;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.*;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -74,7 +77,7 @@ public class OtpService {
 
 		// step-2: guard - reject if no USER found with the provided email
 		if ( userOpt.isEmpty() ) {
-			LoggingUtil.logError(log, OTP_VERIFY, OTP_SERVICE, null, format(NOT_FOUND_LOG, USER, MAIL, email), null);
+			LoggingUtil.logError(log, OTP_VERIFY, AppConstant.Service.OTP, null, format(NOT_FOUND_LOG, USER, EMAIL, email), null);
 			throw new InvalidEmailException();
 		}
 
@@ -89,7 +92,7 @@ public class OtpService {
 		// step-4: fetch the most recent OTP token for this USER
 		OtpToken latestOtp = otpTokenRepository.findFirstByUserOrderByCreatedAtDesc(user)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, OTP_VERIFY, OTP_SERVICE, user, format(OTP_NOT_FOUND, email), null);
+				LoggingUtil.logError(log, OTP_VERIFY, AppConstant.Service.OTP, user, format(OTP_NOT_FOUND, email), null);
 				return new InvalidOtpException();
 			});
 
@@ -132,7 +135,7 @@ public class OtpService {
 		internalGenerateAndSendOtp(request);
 
 		// step-2: log the resend audit milestone
-		LoggingUtil.logOperation(log, MessageConstant.Operation.OTP_RESEND, OTP_SERVICE, null, format(OTP_RESENT_LOG, request.email()));
+		LoggingUtil.logOperation(log, MessageConstant.Operation.OTP_RESEND, AppConstant.Service.OTP, null, format(OTP_RESENT_LOG, request.email()));
 
 		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
 	}
@@ -146,7 +149,7 @@ public class OtpService {
 
 		// delete all OTP tokens past their expiry
 		otpTokenRepository.deleteAllExpiredTokens(Instant.now());
-		LoggingUtil.logOperation(log, OTP_CLEANUP, OTP_SERVICE, null, EXPIRED_OTPS_PURGED);
+		LoggingUtil.logOperation(log, OTP_CLEANUP, AppConstant.Service.OTP, null, EXPIRED_OTPS_PURGED);
 	}
 
 	/*
@@ -165,7 +168,7 @@ public class OtpService {
 
 		// step-2: guard - reject if no USER found with the provided email
 		if ( userOpt.isEmpty() ) {
-			LoggingUtil.logSecurity(log, OTP_GENERATE, null, FAILED, format(NOT_FOUND_LOG, USER, MAIL, email));
+			LoggingUtil.logSecurity(log, OTP_GENERATE, null, FAILED, format(NOT_FOUND_LOG, USER, EMAIL, email));
 			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
 		}
 
@@ -189,8 +192,8 @@ public class OtpService {
 		}
 
 		// step-6: dispatch the OTP via email
-		emailService.sendOtp(user.getEmail(), user.getName(), savedOtp.getOtp());
-		LoggingUtil.logOperation(log, OTP_GENERATE, OTP_SERVICE, user, format(OTP_SENT_LOG, email));
+		emailService.sendOtp(user.getEmail(), user.getName(), savedOtp.getOtp(), user);
+		LoggingUtil.logOperation(log, OTP_GENERATE, AppConstant.Service.OTP, user, format(OTP_SENT_LOG, email));
 
 		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
 	}

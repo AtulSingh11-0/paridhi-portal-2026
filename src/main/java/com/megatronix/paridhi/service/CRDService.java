@@ -1,16 +1,12 @@
 package com.megatronix.paridhi.service;
 
-import com.megatronix.paridhi.constant.AppConstant;
-import com.megatronix.paridhi.constant.MessageConstant;
-import com.megatronix.paridhi.constant.Role;
 import com.megatronix.paridhi.dto.response.TeamAdminResponse;
 import com.megatronix.paridhi.exception.EventNotFoundException;
-import com.megatronix.paridhi.exception.ForbiddenAccessException;
 import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.EventRepository;
 import com.megatronix.paridhi.repository.MRDRepository;
 import com.megatronix.paridhi.repository.TeamRepository;
-import com.megatronix.paridhi.util.LoggingUtil;
+import com.megatronix.paridhi.util.AccessControlUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,15 +14,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static com.megatronix.paridhi.constant.AppConstant.Resource.EVENT;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.TEAM;
+import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_FOUND;
+import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.EVENT_NOT_FOUND;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.READ;
+import static com.megatronix.paridhi.util.LoggingUtil.logError;
+import static com.megatronix.paridhi.util.LoggingUtil.logOperation;
+import static java.lang.String.format;
+
 @Service
 public class CRDService {
+
 	private static final Logger log = LoggerFactory.getLogger(CRDService.class);
 	private final TeamRepository teamRepository;
 	private final EventRepository eventRepository;
 	private final MRDRepository mrdRepository;
-	private static final String EVENT = " event";
-	private static final String CRD_SERVICE = "CRDService";
-	private static final String EVENT_NOT_FOUND = "Event not found with ID: ";
 
 	public CRDService (
 		TeamRepository teamRepository,
@@ -39,60 +42,43 @@ public class CRDService {
 	}
 
 	/*
-	 * protected methods - requires authentication
+	 * protected methods — requires authentication
 	 */
 
 	@Transactional ( readOnly = true )
 	public List< TeamAdminResponse > getTeamsByEventForPrelims ( Long eventId, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			CRD_SERVICE,
-			user,
-			"Fetching teams for prelims of event ID: " + eventId);
+		// step-1: security — only ADMIN and above may access prelims data
+		AccessControlUtil.requireAdminAccess(log, user, READ, "Prelims Data");
 
-		// validate user access
-		checkUserAccess(user, "fetch teams for Prelims of");
+		// step-2: audit log the start of the operation
+		logOperation(log, READ, TEAM, user, format("Fetching teams for prelims of event ID: %d", eventId));
 
-		// fetch the teams for the event
+		// step-3: fetch the event — throws EventNotFoundException if missing
 		var event = eventRepository.findById(eventId)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.READ,
-					CRD_SERVICE,
-					user,
-					EVENT_NOT_FOUND + eventId,
-					null);
-				return new EventNotFoundException(EVENT_NOT_FOUND + eventId);
+				logError(log, READ, EVENT, user, format(EVENT_NOT_FOUND, eventId), null);
+				return new EventNotFoundException(format(NOT_FOUND, EVENT));
 			});
 
-		// fetch the teams for the event
+		// step-4: fetch all teams for the event (including contacts)
 		var teams = teamRepository.findByEventWithContacts(event);
 
-		// segregate the teams into who have their paid field as true and qualified
-		// field as false
+		// step-5: filter teams eligible for prelims
+		// eligibility: all members paid for MRD AND the team registration itself is paid AND team is NOT yet qualified
 		var prelimsTeams = teams.stream()
 			.filter(team -> {
-				// check if the team members have paid for their MRD
-				var allMembersPaid = team.getGidList().stream()
+				// check if every team member has a verified and paid MRD record
+				boolean allMembersPaid = team.getGidList().stream()
 					.allMatch(mrdRepository::existsByGidAndHasPaidTrue);
 
-				// check if the team is paid and not qualified
 				return ( allMembersPaid && team.isHasPaid() && ! team.isHasQualified() );
 			})
 			.toList();
 
-		// log the successful retrieval of teams
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			CRD_SERVICE,
-			user,
-			"Fetched " + prelimsTeams.size() + " teams for Prelims of Event: " + event.getEventName());
+		// step-6: audit log the successful completion
+		logOperation(log, READ, TEAM, user,
+			format("Fetched %d teams for Prelims of Event: %s (ID: %d)", prelimsTeams.size(), event.getEventName(), eventId));
 
-		// convert the teams to response DTOs and return
 		return prelimsTeams.stream()
 			.map(TeamAdminResponse::fromTeam)
 			.toList();
@@ -100,86 +86,34 @@ public class CRDService {
 
 	@Transactional ( readOnly = true )
 	public List< TeamAdminResponse > getTeamsByEventForFinals ( Long eventId, User user ) {
-		// log the operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			CRD_SERVICE,
-			user,
-			"Fetching teams for finals of event ID: " + eventId);
+		// step-1: security — only ADMIN and above may access finals data
+		AccessControlUtil.requireAdminAccess(log, user, READ, "Finals Data");
 
-		// validate user access
-		checkUserAccess(user, "fetch teams for Finals of");
+		// step-2: audit log the start of the operation
+		logOperation(log, READ, TEAM, user, format("Fetching teams for finals of event ID: %d", eventId));
 
-		// check if the event exists
+		// step-3: fetch the event
 		var event = eventRepository.findById(eventId)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(
-					log,
-					MessageConstant.Operation.READ,
-					CRD_SERVICE,
-					user,
-					EVENT_NOT_FOUND + eventId,
-					null);
-				return new EventNotFoundException(EVENT_NOT_FOUND + eventId);
+				logError(log, READ, EVENT, user, format(EVENT_NOT_FOUND, eventId), null);
+				return new EventNotFoundException(format(NOT_FOUND, EVENT));
 			});
 
-		// fetch the teams for the event
+		// step-4: fetch all teams for the event
 		var teams = teamRepository.findByEventWithContacts(event);
 
-		// segregate the teams into who have their paid field as true and played field
-		// as true and qualified field as true
+		// step-5: filter teams eligible for finals
+		// eligibility: team has paid AND team has played (prelims) AND team is qualified
 		var finalsTeams = teams.stream()
 			.filter(team -> ( team.isHasPaid() && team.isHasPlayed() && team.isHasQualified() ))
 			.toList();
 
-		// log the successful retrieval of teams
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.READ,
-			CRD_SERVICE,
-			user,
-			"Fetched " + finalsTeams.size() + " teams for Finals of Event: " + event.getEventName());
+		// step-6: audit log the successful completion
+		logOperation(log, READ, TEAM, user,
+			format("Fetched %d teams for Finals of Event: %s (ID: %d)", finalsTeams.size(), event.getEventName(), eventId));
 
-		// convert the teams to response DTOs and return
 		return finalsTeams.stream()
 			.map(TeamAdminResponse::fromTeam)
 			.toList();
-	}
-
-	/*
-	 * private methods - isUsed internally
-	 */
-
-	private void checkUserAccess ( User user, String action ) {
-		// check if user is null
-		if ( user == null ) {
-			LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_DENIED,
-				null,
-				AppConstant.FAILED,
-				"Authentication required to " + action + EVENT);
-			throw new ForbiddenAccessException(MessageConstant.UserMessage.ACCESS_DENIED);
-		}
-
-		// check if the user has ROLE_USER
-		if ( user.getRole().equals(Role.ROLE_USER) ) {
-			LoggingUtil.logSecurity(
-				log,
-				AppConstant.ACCESS_DENIED,
-				user,
-				AppConstant.FAILED,
-				"User lacks permission to " + action + EVENT);
-			throw new ForbiddenAccessException(MessageConstant.UserMessage.ACCESS_DENIED);
-		}
-
-		// log the successful authorization
-		LoggingUtil.logSecurity(
-			log,
-			AppConstant.ACCESS_GRANTED,
-			user,
-			AppConstant.SUCCESS,
-			"User authorized to " + action + EVENT);
 	}
 }

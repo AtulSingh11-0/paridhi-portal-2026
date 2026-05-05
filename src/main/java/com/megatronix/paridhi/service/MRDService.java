@@ -20,7 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.USER;
+import static com.megatronix.paridhi.constant.AppConstant.Security.BEARER;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.EMAIL_NOT_FOUND;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_FOUND;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
@@ -73,7 +74,7 @@ public class MRDService {
 		}
 
 		// step-2: extract the user's email from the JWT token
-		String token = authHeader.substring(7);
+		String token = authHeader.substring(BEARER.length());
 		String email = jwtService.extractUsername(token);
 
 		if ( log.isDebugEnabled() ) {
@@ -88,10 +89,10 @@ public class MRDService {
 		MRD savedMRD = createAndSaveMRD(user);
 
 		// step-5: send confirmation email with the GID
-		emailService.sendMRDWelcome(user.getEmail(), user.getName(), savedMRD.getGid());
+		emailService.sendMRDWelcome(user.getEmail(), user.getName(), savedMRD.getGid(), user);
 
 		// step-6: audit log the successful registration
-		logOperation(log, MRD_REGISTER, MRD_SERVICE, user,
+		logOperation(log, MRD_REGISTER, AppConstant.Service.MRD, user,
 			format(MRD_REGISTERED, user.getEmail(), user.getUserId(), savedMRD.getGid()));
 
 		return from(savedMRD.getGid());
@@ -110,9 +111,9 @@ public class MRDService {
 			// step-2a: user already exists — register MRD against their existing account
 			User existingUser = existingUserOptional.get();
 			MRD savedMRD = createAndSaveMRD(existingUser);
-			emailService.sendMRDWelcome(existingUser.getEmail(), existingUser.getName(), savedMRD.getGid());
+			emailService.sendMRDWelcome(existingUser.getEmail(), existingUser.getName(), savedMRD.getGid(), existingUser);
 
-			logOperation(log, MRD_REGISTER_BY_ADMIN, MRD_SERVICE, null,
+			logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, null,
 				format(MRD_REGISTERED_BY_ADMIN, existingUser.getEmail(), savedMRD.getGid()));
 
 			return from(savedMRD.getGid());
@@ -121,9 +122,9 @@ public class MRDService {
 		// step-2b: user doesn't exist — create a new account and then register MRD
 		User newUser = createAndSaveUserByAdmin(request);
 		MRD savedMRD = createAndSaveMRD(newUser);
-		emailService.sendMRDWelcome(newUser.getEmail(), newUser.getName(), savedMRD.getGid());
+		emailService.sendMRDWelcome(newUser.getEmail(), newUser.getName(), savedMRD.getGid(), newUser);
 
-		logOperation(log, MRD_REGISTER_BY_ADMIN, MRD_SERVICE, null,
+		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, null,
 			format(MRD_REGISTERED_BY_ADMIN, newUser.getEmail(), savedMRD.getGid()));
 
 		return from(savedMRD.getGid());
@@ -140,12 +141,12 @@ public class MRDService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may update payment status
-		AccessControlUtil.requireAdminAccess(log, user, MRD_PAYMENT_UPDATE, AppConstant.MRD);
+		AccessControlUtil.requireAdminAccess(log, user, MRD_PAYMENT_UPDATE, AppConstant.Resource.MRD);
 
 		// step-2: fetch the MRD record by GID — throws GIDNotFoundException if missing
 		var mrd = mrdRepository.findByGid(gid)
 			.orElseThrow(() -> {
-				logError(log, MRD_PAYMENT_UPDATE, MRD_SERVICE, user, format(MRD_GID_NOT_FOUND, gid), null);
+				logError(log, MRD_PAYMENT_UPDATE, AppConstant.Service.MRD, user, format(MRD_GID_NOT_FOUND, gid), null);
 				return new GIDNotFoundException(format(MRD_GID_NOT_FOUND, gid));
 			});
 
@@ -154,7 +155,7 @@ public class MRDService {
 		MRD updatedMRD = mrdRepository.save(mrd);
 
 		// step-4: audit log the successful payment status update
-		logOperation(log, MRD_PAYMENT_UPDATE, MRD_SERVICE, user,
+		logOperation(log, MRD_PAYMENT_UPDATE, AppConstant.Service.MRD, user,
 			format(MRD_PAYMENT_UPDATED, gid, updatedMRD.isHasPaid(), user.getEmail(), user.getUserId()));
 
 		return from(updatedMRD.getGid());
@@ -167,7 +168,7 @@ public class MRDService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may query MRD records
-		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.MRD);
+		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.Resource.MRD);
 
 		// step-2: fetch the target user account
 		var existingUser = fetchUserByEmail(email);
@@ -176,7 +177,7 @@ public class MRDService {
 		var mrds = mrdRepository.findAllByUser(existingUser);
 
 		// step-4: audit log the retrieval
-		logOperation(log, READ, MRD_SERVICE, user,
+		logOperation(log, READ, AppConstant.Service.MRD, user,
 			format(MRDS_FETCHED, mrds.size(), email, user.getEmail(), user.getUserId()));
 
 		return mrds.stream()
@@ -191,12 +192,12 @@ public class MRDService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may retrieve GID lists
-		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.MRD);
+		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.Resource.MRD);
 
 		// step-2: fetch the target user account — throws UserNotFoundException if missing
 		var existingUser = userRepository.findUserByEmail(email)
 			.orElseThrow(() -> {
-				logError(log, READ, MRD_SERVICE, user, format(EMAIL_NOT_FOUND, email), null);
+				logError(log, READ, AppConstant.Service.MRD, user, format(EMAIL_NOT_FOUND, email), null);
 				return new UserNotFoundException(format(NOT_FOUND, USER));
 			});
 
@@ -206,7 +207,7 @@ public class MRDService {
 			.toList();
 
 		// step-4: audit log the retrieval
-		logOperation(log, READ, MRD_SERVICE, user,
+		logOperation(log, READ, AppConstant.Service.MRD, user,
 			format(GIDS_FETCHED, gids.size(), email, user.getEmail(), user.getUserId()));
 
 		return gids;
@@ -219,17 +220,17 @@ public class MRDService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may look up MRDs by GID
-		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.MRD);
+		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.Resource.MRD);
 
 		// step-2: fetch the MRD record by GID — throws GIDNotFoundException if missing
 		var mrd = mrdRepository.findByGid(gid)
 			.orElseThrow(() -> {
-				logError(log, READ, MRD_SERVICE, user, format(MRD_GID_NOT_FOUND, gid), null);
+				logError(log, READ, AppConstant.Service.MRD, user, format(MRD_GID_NOT_FOUND, gid), null);
 				return new GIDNotFoundException(format(MRD_GID_NOT_FOUND, gid));
 			});
 
 		// step-3: audit log the successful retrieval
-		logOperation(log, READ, MRD_SERVICE, user,
+		logOperation(log, READ, AppConstant.Service.MRD, user,
 			format(MRD_FETCHED, gid, user.getEmail(), user.getUserId()));
 
 		return from(mrd.getGid());
@@ -242,13 +243,13 @@ public class MRDService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may retrieve the full MRD list
-		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.MRD);
+		AccessControlUtil.requireAdminAccess(log, user, READ, AppConstant.Resource.MRD);
 
 		// step-2: fetch all MRD records
 		var mrds = mrdRepository.findAll();
 
 		// step-3: audit log the retrieval
-		logOperation(log, READ, MRD_SERVICE, user,
+		logOperation(log, READ, AppConstant.Service.MRD, user,
 			format(MRDS_ALL_FETCHED, mrds.size(), user.getEmail(), user.getUserId()));
 
 		return mrds.stream()
@@ -287,14 +288,14 @@ public class MRDService {
 	private void validateUserForRegistration ( User user ) {
 		// step-1: guard — user must have a verified email before registering for Paridhi
 		if ( ! user.isVerified() ) {
-			logError(log, MRD_REGISTER, MRD_SERVICE, user,
+			logError(log, MRD_REGISTER, AppConstant.Service.MRD, user,
 				format(MRD_EMAIL_NOT_VERIFIED, user.getEmail(), user.getUserId()), null);
 			throw new EmailNotVerifiedException("You need to verify your email before registering for Paridhi");
 		}
 
 		// step-2: guard — user must have a completed profile before registering
 		if ( ! user.isProfileCreated() ) {
-			logError(log, MRD_REGISTER, MRD_SERVICE, user,
+			logError(log, MRD_REGISTER, AppConstant.Service.MRD, user,
 				format(MRD_PROFILE_NOT_CREATED, user.getEmail(), user.getUserId()), null);
 			throw new ProfileNotYetCreatedException();
 		}
@@ -318,7 +319,7 @@ public class MRDService {
 		User savedUser = userRepository.save(user);
 
 		// step-2: audit log the new account creation
-		logOperation(log, MRD_REGISTER_BY_ADMIN, MRD_SERVICE, null,
+		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, null,
 			format(MRD_USER_CREATED_BY_ADMIN, request.getEmail()));
 
 		return savedUser;
@@ -327,7 +328,7 @@ public class MRDService {
 	private User fetchUserByEmail ( String email ) {
 		return userRepository.findUserByEmail(email)
 			.orElseThrow(() -> {
-				logError(log, READ, MRD_SERVICE, null, format(EMAIL_NOT_FOUND, email), null);
+				logError(log, READ, AppConstant.Service.MRD, null, format(EMAIL_NOT_FOUND, email), null);
 				return new UserNotFoundException(format(NOT_FOUND, USER));
 			});
 	}

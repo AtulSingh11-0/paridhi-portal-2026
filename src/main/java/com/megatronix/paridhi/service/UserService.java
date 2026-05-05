@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.dto.request.AdminCreationRequest;
 import com.megatronix.paridhi.dto.request.LoginRequest;
@@ -25,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
+import static com.megatronix.paridhi.constant.AppConstant.Common.SUCCESS;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.*;
+import static com.megatronix.paridhi.constant.AppConstant.Security.BEARER;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.EXPIRED_BLACKLISTED_TOKENS_PURGED;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -34,7 +38,6 @@ import static com.megatronix.paridhi.constant.MessageConstant.SuccessTemplate.US
 import static com.megatronix.paridhi.constant.MessageConstant.ToastMessage.LOGIN_SUCCESSFUL;
 import static com.megatronix.paridhi.constant.MessageConstant.ToastMessage.REGISTRATION_SUCCESSFUL;
 import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.*;
-import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.JWT_TOKEN_EXPIRED;
 import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.JWT_TOKEN_VALIDATION_FAILED;
 import static com.megatronix.paridhi.constant.Role.ROLE_ADMIN;
 import static com.megatronix.paridhi.dto.response.AuthResponse.from;
@@ -76,7 +79,7 @@ public class UserService {
 
 		// step-1: check if USER already exists with the EMAIL
 		if ( userRepository.existsByEmail(request.email()) ) {
-			logSecurity(log, USER_REGISTER, null, FAILED, format("Registration rejected - " + ALREADY_EXISTS, USER, MAIL, request.email()));
+			logSecurity(log, USER_REGISTER, null, FAILED, format("Registration rejected - " + ALREADY_EXISTS, USER, EMAIL, request.email()));
 			throw new UserAlreadyExistsException();
 		}
 
@@ -127,7 +130,7 @@ public class UserService {
 
 		// step-1: check if ADMIN already exists with the EMAIL
 		if ( userRepository.existsByEmail(request.email()) ) {
-			logSecurity(log, ADMIN_CREATE, null, FAILED, format(ADMIN + " Creation rejected - " + ALREADY_EXISTS, ADMIN, MAIL, request.email()));
+			logSecurity(log, ADMIN_CREATE, null, FAILED, format(ADMIN + " Creation rejected - " + ALREADY_EXISTS, ADMIN, EMAIL, request.email()));
 			throw new UserAlreadyExistsException();
 		}
 
@@ -146,7 +149,7 @@ public class UserService {
 	@Transactional
 	public void logout ( String authHeader ) {
 		// step-1: validate the auth header and extract the token
-		String token = authHeader.startsWith(BEARER) ? authHeader.substring(7) : authHeader;
+		String token = authHeader.startsWith(BEARER) ? authHeader.substring(BEARER.length()) : authHeader;
 
 		// step-2: extract the username from the token
 		String username = jwtService.extractUsername(token);
@@ -168,7 +171,7 @@ public class UserService {
 		if ( authHeader == null || ! authHeader.startsWith(BEARER) ) {
 			return invalid(INVALID_AUTH_HEADER);
 		}
-		String token = authHeader.substring(7);
+		String token = authHeader.substring(BEARER.length());
 
 		try {
 			// step-2: check if the token is blacklisted
@@ -204,13 +207,13 @@ public class UserService {
 		}
 		// delete all blacklisted tokens that have expired
 		blacklistedTokenRepository.deleteAllExpiredTokens(Instant.now());
-		logOperation(log, TOKEN_CLEANUP, BLACKLISTED_TOKEN, null, EXPIRED_BLACKLISTED_TOKENS_PURGED);
+		logOperation(log, TOKEN_CLEANUP, AppConstant.Resource.BLACKLISTED_TOKEN, null, EXPIRED_BLACKLISTED_TOKENS_PURGED);
 	}
 
 	private User fetchUserByEmail ( String email ) {
 		// fetch the USER from the DB using the email, if not found throw an exception
 		return userRepository.findUserByEmail(email).orElseThrow(() -> {
-			logSecurity(log, USER_LOGIN, null, FAILED, format(NOT_FOUND_LOG, USER, MAIL, email));
+			logSecurity(log, USER_LOGIN, null, FAILED, format(NOT_FOUND_LOG, USER, EMAIL, email));
 			return new BadCredentialsException(INVALID_CREDENTIALS);
 		});
 	}

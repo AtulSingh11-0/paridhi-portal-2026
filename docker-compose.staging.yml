@@ -32,7 +32,7 @@ services:
             - paridhi-network
 
     app:
-        image: ${DOCKER_USERNAME}/paridhi-portal:staging
+        image: ${DOCKER_USERNAME}/paridhi-portal-staging-2026:v1.0
         container_name: paridhi-portal
         restart: unless-stopped
         depends_on:
@@ -41,7 +41,7 @@ services:
             redis:
                 condition: service_started
         ports:
-            - "8080:8080"
+            - "8080"
         env_file:
             - .env.docker
         environment:

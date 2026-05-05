@@ -21,12 +21,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import static com.megatronix.paridhi.constant.AppConstant.*;
+import static com.megatronix.paridhi.constant.AppConstant.Common.CLOSED;
+import static com.megatronix.paridhi.constant.AppConstant.Common.OPEN;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.COMBO;
+import static com.megatronix.paridhi.constant.AppConstant.Resource.EVENT;
+import static com.megatronix.paridhi.constant.AppConstant.Storage.COMBO_IMAGE;
+import static com.megatronix.paridhi.constant.AppConstant.Storage.IMAGE_STORAGE;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -64,7 +70,7 @@ public class EventComboService {
 		List< EventCombo > combos = eventComboRepository.findAll();
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, EVENT_COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+			logOperation(log, READ, COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
 		}
 
 		// step-2: group by domain and return
@@ -81,10 +87,10 @@ public class EventComboService {
 		var combo = fetchEventComboById(eventComboId, null);
 
 		// step-2: audit log the successful retrieval
-		logOperation(log, READ, EVENT_COMBO, null, format(COMBO_RETRIEVED, combo.getEventComboName(), eventComboId));
+		logOperation(log, READ, COMBO, null, format(COMBO_RETRIEVED, combo.getEventComboName(), eventComboId));
 
 		// step-3: map to public DTO and return
-		return EventComboPublicResponse.fromCombo(combo);
+		return EventComboPublicResponse.fromCombo(combo, getEventComboDate(combo), getEventComboVenue(combo));
 	}
 
 	@Transactional ( readOnly = true )
@@ -97,12 +103,12 @@ public class EventComboService {
 		List< EventCombo > combos = eventComboRepository.findByDomain(domain);
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, EVENT_COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+			logOperation(log, READ, COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
 		}
 
 		// step-2: map to public DTOs and return
 		return combos.stream()
-			.map(EventComboPublicResponse::fromCombo)
+			.map(this::apply)
 			.toList();
 	}
 
@@ -116,7 +122,7 @@ public class EventComboService {
 		List< EventCombo > combos = eventComboRepository.findByIsEventComboRegistrationOpen(isOpen);
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, EVENT_COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+			logOperation(log, READ, COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
 		}
 
 		// step-2: group by domain and return
@@ -134,7 +140,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may create combos
-		AccessControlUtil.requireAdminAccess(log, user, COMBO_CREATE, EVENT_COMBO);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_CREATE, COMBO);
 
 		// step-2: fetch the referenced events by their IDs
 		var events = eventRepository.findAllById(request.eventIds());
@@ -154,10 +160,10 @@ public class EventComboService {
 		var savedCombo = eventComboRepository.save(combo);
 
 		// step-5: audit log the successful creation
-		logOperation(log, COMBO_CREATE, EVENT_COMBO, user,
+		logOperation(log, COMBO_CREATE, COMBO, user,
 			format(COMBO_CREATED, savedCombo.getEventComboName(), savedCombo.getEventComboId(), user.getEmail(), user.getUserId()));
 
-		return EventComboAdminResponse.fromCombo(savedCombo);
+		return EventComboAdminResponse.fromCombo(savedCombo, getEventComboDate(savedCombo), getEventComboVenue(savedCombo));
 	}
 
 	@Transactional
@@ -167,7 +173,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may update combos
-		AccessControlUtil.requireAdminAccess(log, user, COMBO_UPDATE, EVENT_COMBO);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_UPDATE, COMBO);
 
 		// step-2: fetch the existing combo — throws ComboNotFoundException if missing
 		var combo = fetchEventComboById(id, user);
@@ -191,10 +197,10 @@ public class EventComboService {
 		var updatedCombo = eventComboRepository.save(combo);
 
 		// step-7: audit log the successful update
-		logOperation(log, COMBO_UPDATE, EVENT_COMBO, user,
+		logOperation(log, COMBO_UPDATE, COMBO, user,
 			format(COMBO_UPDATED, updatedCombo.getEventComboName(), id, user.getEmail(), user.getUserId()));
 
-		return EventComboAdminResponse.fromCombo(updatedCombo);
+		return EventComboAdminResponse.fromCombo(updatedCombo, getEventComboDate(updatedCombo), getEventComboVenue(updatedCombo));
 	}
 
 	@Transactional
@@ -224,7 +230,7 @@ public class EventComboService {
 		logOperation(log, COMBO_IMAGE_UPDATE, COMBO_IMAGE, user,
 			format(COMBO_IMAGE_UPDATED, updatedCombo.getEventComboName(), id, imageDetails.fileId(), user.getEmail(), user.getUserId()));
 
-		return EventComboAdminResponse.fromCombo(updatedCombo);
+		return EventComboAdminResponse.fromCombo(updatedCombo, getEventComboDate(updatedCombo), getEventComboVenue(updatedCombo));
 	}
 
 	@Transactional
@@ -234,7 +240,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may delete combos
-		AccessControlUtil.requireAdminAccess(log, user, COMBO_DELETE, EVENT_COMBO);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_DELETE, COMBO);
 
 		// step-2: fetch the existing combo — throws ComboNotFoundException if missing
 		var existingCombo = fetchEventComboById(id, user);
@@ -244,7 +250,7 @@ public class EventComboService {
 
 		// step-4: delete the combo from the database and audit log
 		eventComboRepository.deleteById(id);
-		logOperation(log, COMBO_DELETE, EVENT_COMBO, user,
+		logOperation(log, COMBO_DELETE, COMBO, user,
 			format(COMBO_DELETED_LOG, existingCombo.getEventComboName(), id, user.getEmail(), user.getUserId()));
 	}
 
@@ -255,7 +261,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may toggle combo registration
-		AccessControlUtil.requireAdminAccess(log, user, COMBO_TOGGLE_REGISTRATION, EVENT_COMBO);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_TOGGLE_REGISTRATION, COMBO);
 
 		// step-2: fetch the existing combo
 		var combo = fetchEventComboById(id, user);
@@ -266,14 +272,14 @@ public class EventComboService {
 		var updatedCombo = eventComboRepository.save(combo);
 
 		// step-4: audit log the toggle result (old -> new status)
-		logOperation(log, COMBO_TOGGLE_REGISTRATION, EVENT_COMBO, user,
+		logOperation(log, COMBO_TOGGLE_REGISTRATION, COMBO, user,
 			format(COMBO_REGISTRATION_TOGGLED,
 				updatedCombo.getEventComboName(), id,
 				previousStatus ? OPEN : CLOSED,
 				! previousStatus ? OPEN : CLOSED,
 				user.getEmail(), user.getUserId()));
 
-		return EventComboAdminResponse.fromCombo(updatedCombo);
+		return EventComboAdminResponse.fromCombo(updatedCombo, getEventComboDate(updatedCombo), getEventComboVenue(updatedCombo));
 	}
 
 	@Transactional
@@ -283,7 +289,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may mutate combo membership
-		AccessControlUtil.requireAdminAccess(log, user, COMBO_ADD_EVENT, EVENT_COMBO);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_ADD_EVENT, COMBO);
 
 		// step-2: fetch the combo and the event
 		var combo = fetchEventComboById(eventComboId, user);
@@ -291,7 +297,7 @@ public class EventComboService {
 
 		// step-3: guard — enforce domain integrity before adding the event
 		if ( ! event.getDomain().equals(combo.getDomain()) ) {
-			logError(log, COMBO_ADD_EVENT, EVENT_COMBO, user,
+			logError(log, COMBO_ADD_EVENT, COMBO, user,
 				format(COMBO_DOMAIN_MISMATCH, event.getDomain(), combo.getDomain(), eventId, eventComboId), null);
 			throw new InvalidDomainException(
 				format(INVALID_DOMAIN, combo.getDomain()) + " (event domain: " + event.getDomain() + ")");
@@ -299,10 +305,10 @@ public class EventComboService {
 
 		// step-4: add the event using the entity helper method and audit log
 		combo.addEvent(event);
-		logOperation(log, COMBO_ADD_EVENT, EVENT_COMBO, user,
+		logOperation(log, COMBO_ADD_EVENT, COMBO, user,
 			format(COMBO_EVENT_ADDED, event.getEventName(), eventId, combo.getEventComboName(), eventComboId, user.getEmail(), user.getUserId()));
 
-		return EventComboAdminResponse.fromCombo(combo);
+		return EventComboAdminResponse.fromCombo(combo, getEventComboDate(combo), getEventComboVenue(combo));
 	}
 
 	@Transactional
@@ -312,7 +318,7 @@ public class EventComboService {
 		}
 
 		// step-1: security — only ADMIN/SUPERADMIN may mutate combo membership
-		AccessControlUtil.requireAdminAccess(log, user, COMBO_REMOVE_EVENT, EVENT_COMBO);
+		AccessControlUtil.requireAdminAccess(log, user, COMBO_REMOVE_EVENT, COMBO);
 
 		// step-2: fetch the combo and the event
 		var combo = fetchEventComboById(eventComboId, user);
@@ -320,7 +326,7 @@ public class EventComboService {
 
 		// step-3: guard — enforce minimum combo size (must have at least 2 events)
 		if ( combo.getEvents().size() <= 2 ) {
-			logError(log, COMBO_REMOVE_EVENT, EVENT_COMBO, user,
+			logError(log, COMBO_REMOVE_EVENT, COMBO, user,
 				format(COMBO_MIN_SIZE_VIOLATED, eventId, eventComboId), null);
 			throw new IllegalArgumentException(
 				"A combo must contain at least 2 events. You cannot remove this event without adding another one first.");
@@ -328,10 +334,10 @@ public class EventComboService {
 
 		// step-4: remove the event using the entity helper method and audit log
 		combo.removeEvent(event);
-		logOperation(log, COMBO_REMOVE_EVENT, EVENT_COMBO, user,
+		logOperation(log, COMBO_REMOVE_EVENT, COMBO, user,
 			format(COMBO_EVENT_REMOVED, event.getEventName(), eventId, combo.getEventComboName(), eventComboId, user.getEmail(), user.getUserId()));
 
-		return EventComboAdminResponse.fromCombo(combo);
+		return EventComboAdminResponse.fromCombo(combo, getEventComboDate(combo), getEventComboVenue(combo));
 	}
 
 	/*
@@ -343,7 +349,7 @@ public class EventComboService {
 			.collect(Collectors.groupingBy(
 				e -> e.getDomain().name(),
 				TreeMap::new,
-				Collectors.mapping(EventComboPublicResponse::fromCombo, toList())
+				Collectors.mapping(this::apply, toList())
 			))
 			.entrySet().stream()
 			.map(entry -> new CategorizedEventComboResponse(entry.getKey(), entry.getValue()))
@@ -353,15 +359,30 @@ public class EventComboService {
 	private EventCombo fetchEventComboById ( Long id, User user ) {
 		return eventComboRepository.findById(id)
 			.orElseThrow(() -> {
-				logError(log, READ, EVENT_COMBO, user, format(COMBO_NOT_FOUND, id), null);
+				logError(log, READ, COMBO, user, format(COMBO_NOT_FOUND, id), null);
 				return new ComboNotFoundException(format(NOT_FOUND, COMBO));
 			});
+	}
+
+	private Instant getEventComboDate ( EventCombo combo ) {
+		return combo.getEvents().stream()
+			.map(Event::getEventDate)
+			.min(Instant::compareTo)
+			.orElse(Instant.now());
+	}
+
+	private String getEventComboVenue ( EventCombo combo ) {
+		return combo.getEvents().stream()
+			.map(Event::getEventVenue)
+			.filter(venue -> venue != null && ! venue.isBlank())
+			.findFirst()
+			.orElse("TBD");
 	}
 
 	private Event fetchEventById ( Long eventId, User user ) {
 		return eventRepository.findById(eventId)
 			.orElseThrow(() -> {
-				logError(log, READ, EVENT_COMBO, user, format(NOT_FOUND_LOG, EVENT, "ID", eventId), null);
+				logError(log, READ, COMBO, user, format(NOT_FOUND_LOG, EVENT, "ID", eventId), null);
 				return new EventNotFoundException(format(NOT_FOUND, EVENT));
 			});
 	}
@@ -369,7 +390,7 @@ public class EventComboService {
 	private void validateEvents ( EventComboRequest request, List< Event > events, Domain domain, User user, String operation ) {
 		// step-1: verify all requested event IDs resolved to actual entities
 		if ( events.size() != request.eventIds().size() ) {
-			logError(log, operation, EVENT_COMBO, user,
+			logError(log, operation, COMBO, user,
 				format("One or more of the %d requested event IDs were not found.", request.eventIds().size()), null);
 			throw new EventNotFoundException(format(NOT_FOUND, EVENT));
 		}
@@ -379,7 +400,7 @@ public class EventComboService {
 			.allMatch(event -> event.getDomain().equals(domain));
 
 		if ( ! eventsAreFromSameDomain ) {
-			logError(log, operation, EVENT_COMBO, user,
+			logError(log, operation, COMBO, user,
 				format("All events must belong to the same domain: %s", domain), null);
 			throw new InvalidDomainException(format(INVALID_DOMAIN, domain));
 		}
@@ -394,5 +415,9 @@ public class EventComboService {
 					format(COMBO_IMAGE_DELETE_FAILED, id, e.getMessage()), e);
 			}
 		}
+	}
+
+	private EventComboPublicResponse apply ( EventCombo combo ) {
+		return EventComboPublicResponse.fromCombo(combo, getEventComboDate(combo), getEventComboVenue(combo));
 	}
 }
