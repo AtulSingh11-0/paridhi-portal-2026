@@ -1,11 +1,12 @@
 package com.megatronix.paridhi.util;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.Role;
 import com.megatronix.paridhi.exception.ForbiddenAccessException;
 import com.megatronix.paridhi.model.User;
 import org.slf4j.Logger;
 
-import static com.megatronix.paridhi.constant.AppConstant.FAILED;
+import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.AUTHENTICATION_REQUIRED;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_AUTHORIZED;
 import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.ACCESS_DENIED;
@@ -44,14 +45,14 @@ public final class AccessControlUtil {
 	public static void requireAdminAccess ( Logger log, User user, String operation, String resource ) {
 		// step-1: reject unauthenticated (null) users outright
 		if ( user == null ) {
-			LoggingUtil.logSecurity(log, ACCESS_DENIED, null, FAILED,
+			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, null, FAILED,
 				format(AUTHENTICATION_REQUIRED, operation + " " + resource));
 			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}
 
 		// step-2: reject regular users — only ADMIN and above may proceed
 		if ( user.getRole().equals(Role.ROLE_USER) ) {
-			LoggingUtil.logSecurity(log, ACCESS_DENIED, user, FAILED,
+			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, user, FAILED,
 				format(NOT_AUTHORIZED, operation + " " + resource));
 			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}

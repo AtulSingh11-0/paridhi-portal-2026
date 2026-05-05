@@ -8,6 +8,10 @@ import java.util.Set;
 
 public class FileValidationUtil {
 
+	private FileValidationUtil() {
+		// Private constructor to prevent instantiation
+	}
+
 	private static final Set< String > VALID_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/jpg", "image/gif",
 		"image/webp", "image/svg+xml", "image/bmp", "image/tiff", "image/x-icon", "image/heic", "image/heif", "image/avif");
 
@@ -16,8 +20,8 @@ public class FileValidationUtil {
 			throw new InvalidFileException("File cannot be null or empty");
 		}
 
-		if ( file.getSize() > AppConstant.MAX_IMAGE_SIZE ) {
-			throw new InvalidFileException("File size exceeds the maximum limit of " + ( AppConstant.MAX_IMAGE_SIZE / ( 1024 * 1024 ) ) + " MB");
+		if ( file.getSize() > AppConstant.Storage.MAX_IMAGE_SIZE ) {
+			throw new InvalidFileException("File size exceeds the maximum limit of " + ( AppConstant.Storage.MAX_IMAGE_SIZE / ( 1024 * 1024 ) ) + " MB");
 		}
 
 		String contentType = file.getContentType();
@@ -36,7 +40,7 @@ public class FileValidationUtil {
 		String sanitizedFileName = originalFileName.replaceAll("[^a-zA-Z0-9.\\-]", "_")
 			.replaceAll("\\.{2,}", ".")
 			.replaceAll("_+", "_")
-			.replaceAll("^[_.-]+|[_.-]+$", "")
+			.replaceAll("(^[_.-]+)|([_.-]+$)", "")
 			.toLowerCase();
 
 		return sanitizedFileName.isEmpty() ? "unnamed_file" : sanitizedFileName;
