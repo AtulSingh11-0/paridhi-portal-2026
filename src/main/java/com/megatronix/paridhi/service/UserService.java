@@ -81,7 +81,8 @@ public class UserService {
 		}
 
 		// step-2: create the USER and save it in the DB
-		User user = User.builder().name(request.name()).email(request.email()).password(passwordEncoder.encode(request.password())).isLoggedIn(true).build();
+		User user =
+			User.builder().name(request.name()).email(request.email()).password(passwordEncoder.encode(request.password())).isLoggedIn(true).isVerified(true).build();
 
 		User savedUser = userRepository.save(user);
 		if ( log.isDebugEnabled() ) {
