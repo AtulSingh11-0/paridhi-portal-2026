@@ -70,9 +70,6 @@ public final class MessageConstant {
 		public static final String READ = "read";
 		public static final String UPDATE = "update";
 		public static final String DELETE = "delete";
-
-		// Other operations
-		public static final String RESOLVE = "resolve";
 	}
 
 	/**
@@ -101,6 +98,9 @@ public final class MessageConstant {
 		public static final String CONFLICT_ERROR = "The request could not be completed due to a conflict with current state.";
 		public static final String FILE_UPLOAD_ERROR = "There was an error uploading the file. Please try again.";
 		public static final String FILE_DELETION_ERROR = "There was an error deleting the file. Please try again.";
+
+		// too many requests errors
+		public static final String TOO_MANY_REQUESTS = "Too many requests. Please try again later.";
 	}
 
 	/**
@@ -166,15 +166,9 @@ public final class MessageConstant {
 
 		// CRUD operation success messages
 		public static final String CREATED = "%s created successfully with ID: %s.";
-		public static final String UPDATED = "%s updated successfully with ID: %s.";
 		public static final String DELETED = "%s deleted successfully with ID: %s.";
-		public static final String FETCHED = "Successfully retrieved %s.";
-		public static final String FETCHED_COUNT = "Successfully retrieved %d %s.";
 
 		public static final String USER_AUTHENTICATED_SUCCESSFULLY = "User authenticated successfully with email: %s.";
-
-		// Authentication/Authorization errors
-		public static final String AUTHORIZED = "User authorized to %s.";
 	}
 
 	/**
@@ -270,6 +264,11 @@ public final class MessageConstant {
 		public static final String PROFILE_FETCHED = "Profile retrieved for user: %s (ID: %d)";
 		public static final String PROFILES_LISTED = "Successfully retrieved %d profiles. Filter: isProfileCreated = %s";
 		public static final String IDOR_ATTEMPT = "IDOR Attempt: User %s (ID: %d) tried to %s profile of %s (ID: %s)";
+
+		// Email messages
+		public static final String EMAIL_SENDING_LOG = "Sending %s email to: %s";
+		public static final String EMAIL_SENT_LOG = "Successfully sent %s email to: %s";
+		public static final String EMAIL_SEND_FAILED_LOG = "Failed to send %s email to: %s — Error: %s";
 	}
 
 	public static final class ToastMessage {
@@ -294,11 +293,14 @@ public final class MessageConstant {
 		public static final String MEGATRONIX = "Megatronix";
 		public static final String EMAIL_SUBJECT_PREFIX = "Paridhi '26";
 		public static final String RECIPIENTS = " recipients";
-		public static final String RECIPIENTS_FOR_EVENT = " recipients for event: ";
-		public static final String TEAM = ", team: ";
 
-		// Email error messages
-		public static final String ERROR = " - Error: ";
-		public static final String RECIPIENTS_ERROR = " recipients - Error: ";
+		// Email types
+		public static final String PASSWORD_RESET = "Password Reset";
+		public static final String OTP_VERIFICATION = "OTP Verification";
+		public static final String MRD_WELCOME = "MRD Welcome";
+		public static final String REGISTRATION = "Event Registration";
+		public static final String QUALIFICATION = "Qualification";
+		public static final String POSITION = "Position Victory";
+		public static final String CREDENTIALS = "Account Credentials";
 	}
 }
