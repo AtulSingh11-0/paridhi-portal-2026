@@ -18,47 +18,6 @@ CREATE TABLE `blacklisted_tokens`
   COLLATE = utf8mb4_0900_ai_ci;
 
 --
--- Table structure for table `contact_queries`
---
-CREATE TABLE `contact_queries`
-(
-    `id`                  bigint        NOT NULL AUTO_INCREMENT,
-    `contact`             varchar(255)  NOT NULL,
-    `created_at`          datetime(6)   DEFAULT NULL,
-    `email`               varchar(255)  NOT NULL,
-    `is_resolved`         bit(1)        DEFAULT NULL,
-    `name`                varchar(255)  NOT NULL,
-    `query`               varchar(1000) NOT NULL,
-    `response`            varchar(1000) DEFAULT NULL,
-    `updated_at`          datetime(6)   DEFAULT NULL,
-    `resolved_by_user_id` bigint        DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `FKjhbawcvxjp8stx75ddcif89bx` (`resolved_by_user_id`),
-    CONSTRAINT `FKjhbawcvxjp8stx75ddcif89bx` FOREIGN KEY (`resolved_by_user_id`) REFERENCES `users` (`user_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci;
-
---
--- Table structure for table `domain_posters`
---
-CREATE TABLE `domain_posters`
-(
-    `domain_poster_id`      bigint                                                                         NOT NULL AUTO_INCREMENT,
-    `created_at`            datetime(6)                                                                    NOT NULL,
-    `created_by`            varchar(255) DEFAULT NULL,
-    `updated_at`            datetime(6)                                                                    NOT NULL,
-    `updated_by`            varchar(255) DEFAULT NULL,
-    `domain`                enum ('CIVIL','CODING','ELECTRICAL','EXCLUSIVE','GAMING','GENERAL','ROBOTICS') NOT NULL,
-    `domain_poster_file_id` varchar(255)                                                                   NOT NULL,
-    `domain_poster_url`     varchar(255)                                                                   NOT NULL,
-    PRIMARY KEY (`domain_poster_id`),
-    UNIQUE KEY `UK8lhsj6bnihlbn2jv8t598i96a` (`domain`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci;
-
---
 -- Table structure for table `event_combo_mappings`
 --
 CREATE TABLE `event_combo_mappings`
@@ -121,51 +80,6 @@ CREATE TABLE `events`
     `is_event_registration_open` bit(1)                                                                         NOT NULL,
     `is_team_event`              bit(1)                                                                         NOT NULL,
     PRIMARY KEY (`event_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci;
-
---
--- Table structure for table `galleries`
---
-CREATE TABLE `galleries`
-(
-    `id`               bigint NOT NULL AUTO_INCREMENT,
-    `batch_year`       varchar(255) DEFAULT NULL,
-    `created_at`       datetime(6)  DEFAULT NULL,
-    `image_public_id`  varchar(255) DEFAULT NULL,
-    `image_secure_url` varchar(255) DEFAULT NULL,
-    `updated_at`       datetime(6)  DEFAULT NULL,
-    `created_by`       bigint       DEFAULT NULL,
-    `updated_by`       bigint       DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `FKsj4tbw1nau24cgcmsu34ktan6` (`created_by`),
-    KEY `FKrahp56uayj76vv5pyjf7ipijg` (`updated_by`),
-    CONSTRAINT `FKrahp56uayj76vv5pyjf7ipijg` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`),
-    CONSTRAINT `FKsj4tbw1nau24cgcmsu34ktan6` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci;
-
---
--- Table structure for table `megatronix_team`
---
-CREATE TABLE `megatronix_team`
-(
-    `id`             bigint                                                                                        NOT NULL AUTO_INCREMENT,
-    `created_at`     datetime(6)                                                                                                                                                     DEFAULT NULL,
-    `designation`    enum ('APP_DEVELOPER','BACKEND_DEVELOPER','BACKEND_DEVELOPER_AND_APP_DEVELOPER','BARA_BHATARI','FRONTEND_DEVELOPER','FULL_STACK_DEVELOPER','MEGATRON','MEMBER') DEFAULT NULL,
-    `email`          varchar(255)                                                                                  NOT NULL,
-    `facebook_link`  varchar(255)                                                                                                                                                    DEFAULT NULL,
-    `github_link`    varchar(255)                                                                                                                                                    DEFAULT NULL,
-    `image_link`     varchar(255)                                                                                                                                                    DEFAULT NULL,
-    `instagram_link` varchar(255)                                                                                                                                                    DEFAULT NULL,
-    `linked_in_link` varchar(255)                                                                                                                                                    DEFAULT NULL,
-    `name`           varchar(255)                                                                                  NOT NULL,
-    `updated_at`     datetime(6)                                                                                                                                                     DEFAULT NULL,
-    `year`           enum ('ALUMNI','FIRST','FOURTH','NOT_APPLICABLE','OTHER','OTHERS','PASSOUT','SECOND','THIRD') NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `UKgocajxl0gsb7rlmoqurnarkeq` (`email`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
@@ -267,28 +181,6 @@ CREATE TABLE `team_gids`
     `gids`    varchar(255) DEFAULT NULL,
     KEY `FKsv57brcmp861x5dgiosvtydm1` (`team_id`),
     CONSTRAINT `FKsv57brcmp861x5dgiosvtydm1` FOREIGN KEY (`team_id`) REFERENCES `teams` (`team_id`)
-) ENGINE = InnoDB
-  DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_0900_ai_ci;
-
---
--- Table structure for table `team_photo`
---
-CREATE TABLE `team_photo`
-(
-    `id`               bigint NOT NULL AUTO_INCREMENT,
-    `category`         enum ('DEVELOPERS','MEGATRONS') DEFAULT NULL,
-    `created_at`       datetime(6)                     DEFAULT NULL,
-    `image_public_id`  varchar(255)                    DEFAULT NULL,
-    `image_secure_url` varchar(255)                    DEFAULT NULL,
-    `updated_at`       datetime(6)                     DEFAULT NULL,
-    `created_by`       bigint                          DEFAULT NULL,
-    `updated_by`       bigint                          DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `FKe2l3tv6eqco7hl4h46v2vhai7` (`created_by`),
-    KEY `FKnkk9f1sun37gths9vx438v2k8` (`updated_by`),
-    CONSTRAINT `FKe2l3tv6eqco7hl4h46v2vhai7` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
-    CONSTRAINT `FKnkk9f1sun37gths9vx438v2k8` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
