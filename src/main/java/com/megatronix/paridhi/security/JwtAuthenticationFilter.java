@@ -1,7 +1,13 @@
 package com.megatronix.paridhi.security;
 
-import java.io.IOException;
-
+import com.megatronix.paridhi.service.UserDetailsServiceImpl;
+import com.megatronix.paridhi.util.LoggingUtil;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -9,70 +15,87 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.megatronix.paridhi.service.UserDetailsServiceImpl;
+import java.io.IOException;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
+import static com.megatronix.paridhi.constant.AppConstant.Security.BEARER;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.TOKEN_VALIDATION;
+import static com.megatronix.paridhi.constant.MessageConstant.UserMessage.JWT_TOKEN_INVALID;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
-@Slf4j
+/**
+ * Filter that intercepts every request to validate JWT tokens in the Authorization header.
+ * If a valid token is present, it authenticates the user within the Spring Security context.
+ */
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-  private final JwtService jwtService;
-  private final UserDetailsServiceImpl userDetailsService;
-  
-  @Override
-  protected void doFilterInternal(
-    @NonNull HttpServletRequest request, 
-    @NonNull HttpServletResponse response, 
-    @NonNull FilterChain filterChain
-  ) throws ServletException, IOException {
-    final String authHeader = request.getHeader("Authorization");
-    final String jwt;
-    final String userEmail;
 
-    // Check if the request has a valid authorization header, which starts with "Bearer "
-    if ( authHeader == null || !authHeader.startsWith("Bearer ") ) {
-      filterChain.doFilter(request, response);
-      return;
-    }
+	private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+	private final JwtService jwtService;
+	private final UserDetailsServiceImpl userDetailsService;
 
-    // Extract the JWT token from the authorization header
-    jwt = authHeader.substring(7);
-    
-    try {
-      // Extract the user email from the JWT token
-      userEmail = jwtService.extractUsername(jwt);
+	public JwtAuthenticationFilter (
+		JwtService jwtService,
+		UserDetailsServiceImpl userDetailsService
+	) {
+		this.jwtService = jwtService;
+		this.userDetailsService = userDetailsService;
+	}
 
-      // If the user email is not null and the user is not already authenticated, authenticate the user
-      if ( userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null ) {
-        // Load the user details from the user email
-        var userDetails = userDetailsService.loadUserByUsername(userEmail);
-        
-        // If the token is valid, set the user authentication in the security context
-        if (jwtService.isTokenValid(jwt, userDetails)) {
-          // Create the authentication token, set the authentication details and set the authentication token in the security context
-          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-            userDetails,
-            null,
-            userDetails.getAuthorities()
-          );
+	@Override
+	protected void doFilterInternal (
+		@NonNull HttpServletRequest request,
+		@NonNull HttpServletResponse response,
+		@NonNull FilterChain filterChain
+	) throws ServletException, IOException {
+		final String authHeader = request.getHeader(AUTHORIZATION);
+		final String jwt;
+		final String userEmail;
 
-          authToken.setDetails(
-            new WebAuthenticationDetailsSource().buildDetails(request)
-          );
+		// step-1: check if the request has a valid authorization header, which starts with BEARER
+		if ( authHeader == null || ! authHeader.startsWith(BEARER) ) {
+			filterChain.doFilter(request, response);
+			return;
+		}
 
-          SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-      }
-    } catch (Exception e) {
-      log.error("Could not set user authentication in Security context: " + e.getMessage());
-    }
-    // Continue with the filter chain
-    filterChain.doFilter(request, response);
-  }
+		// step-2: extract the JWT token from the authorization header using the prefix length
+		jwt = authHeader.substring(BEARER.length());
+
+		try {
+			// step-3: extract the user email from the JWT token
+			userEmail = jwtService.extractUsername(jwt);
+
+			// step-4: if email is resolved and user is not already authenticated, proceed with validation
+			if ( userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null ) {
+				// step-4a: load user details from the database
+				var userDetails = userDetailsService.loadUserByUsername(userEmail);
+
+				// step-4b: if token is cryptographically valid and not expired, authenticate the user
+				if ( jwtService.isTokenValid(jwt, userDetails) ) {
+					UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+						userDetails,
+						null,
+						userDetails.getAuthorities()
+					);
+
+					authToken.setDetails(
+						new WebAuthenticationDetailsSource().buildDetails(request)
+					);
+
+					SecurityContextHolder.getContext().setAuthentication(authToken);
+
+					if ( log.isTraceEnabled() ) {
+						log.trace("User {} successfully authenticated via JWT", userEmail);
+					}
+				}
+			}
+		} catch ( Exception e ) {
+			// step-5: handle authentication failures — log to security audit trail
+			log.warn("Failed to authenticate user with JWT token: {}", e.getMessage());
+			LoggingUtil.logSecurity(log, TOKEN_VALIDATION, null, FAILED, JWT_TOKEN_INVALID + ": " + e.getMessage());
+		}
+
+		// step-6: continue with the filter chain
+		filterChain.doFilter(request, response);
+	}
 }

@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
+
 	private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 	private final BlacklistedTokenRepository blacklistedTokenRepository;
 
@@ -46,7 +47,7 @@ public class JwtService {
 	}
 
 	public String generateToken ( User user ) {
-		List<String> roles = user.getAuthorities().stream()
+		List< String > roles = user.getAuthorities().stream()
 			.map(GrantedAuthority::getAuthority)
 			.toList();
 
