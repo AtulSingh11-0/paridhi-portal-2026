@@ -22,13 +22,13 @@ public class EmailConfig {
 	@Value ( "${spring.mail.port}" )
 	private int port;
 
-	@Value( "${spring.mail.properties.mail.smtp.auth}" )
+	@Value ( "${spring.mail.properties.mail.smtp.auth}" )
 	private boolean smtpAuth;
 
-	@Value( "${spring.mail.properties.mail.smtp.starttls.enable}" )
+	@Value ( "${spring.mail.properties.mail.smtp.starttls.enable}" )
 	private boolean starttlsEnable;
 
-	@Value( "${spring.mail.properties.mail.smtp.ssl.enable}" )
+	@Value ( "${spring.mail.properties.mail.smtp.ssl.enable}" )
 	private boolean sslEnabled;
 
 	@Bean
@@ -44,7 +44,7 @@ public class EmailConfig {
 		props.put("mail.smtp.auth", String.valueOf(smtpAuth));
 		props.put("mail.smtp.starttls.enable", String.valueOf(starttlsEnable));
 		props.put("mail.smtp.ssl.enable", String.valueOf(sslEnabled));
-		props.put("mail.debug", "true");
+		props.put("mail.debug", "false");
 
 		return mailSender;
 	}
