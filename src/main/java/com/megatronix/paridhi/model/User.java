@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static com.megatronix.paridhi.constant.AppConstant.DEFAULT_PROFILE_PIC;
+import static com.megatronix.paridhi.constant.AppConstant.Storage.DEFAULT_PROFILE_PIC;
 import static com.megatronix.paridhi.constant.Role.ROLE_USER;
 import static jakarta.persistence.EnumType.STRING;
 import static jakarta.persistence.GenerationType.IDENTITY;
@@ -71,7 +71,7 @@ public class User extends Auditable implements UserDetails {
 	@Builder.Default
 	private List< MRD > mrdRegistrations = new ArrayList<>();
 
-	@Column( name = "is_logged_in", nullable = false )
+	@Column ( name = "is_logged_in", nullable = false )
 	@Builder.Default
 	private boolean isLoggedIn = false;
 

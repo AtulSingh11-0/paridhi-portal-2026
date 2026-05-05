@@ -1,6 +1,5 @@
 package com.megatronix.paridhi.model;
 
-import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.Domain;
 import com.megatronix.paridhi.constant.EventType;
 import jakarta.persistence.*;
@@ -12,6 +11,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.megatronix.paridhi.constant.AppConstant.Storage.DEFAULT_EVENT_POSTER_FILE_ID;
+import static com.megatronix.paridhi.constant.AppConstant.Storage.DEFAULT_EVENT_POSTER_URL;
+import static jakarta.persistence.GenerationType.IDENTITY;
 import static org.hibernate.type.SqlTypes.JSON;
 
 @Getter
@@ -24,7 +26,7 @@ import static org.hibernate.type.SqlTypes.JSON;
 public class Event extends Auditable {
 
 	@Id
-	@GeneratedValue ( strategy = GenerationType.IDENTITY )
+	@GeneratedValue ( strategy = IDENTITY )
 	@Column ( name = "event_id", updatable = false, nullable = false )
 	private Long eventId;
 
@@ -55,11 +57,12 @@ public class Event extends Auditable {
 
 	@Column ( name = "event_poster_url", nullable = false )
 	@Builder.Default
-	private String eventPosterUrl = AppConstant.DEFAULT_EVENT_POSTER_URL; // ImageKit URL
+	private String eventPosterUrl = DEFAULT_EVENT_POSTER_URL; // ImageKit URL
 
 	@Column ( name = "event_poster_file_id", nullable = false )
 	@Builder.Default
-	private String eventPosterFileId = AppConstant.DEFAULT_EVENT_POSTER_FILE_ID; // ImageKit File ID for deletion
+	private String eventPosterFileId = DEFAULT_EVENT_POSTER_FILE_ID; // ImageKit File ID for
+	// deletion
 
 	@Column ( name = "event_rule_book_url" )
 	private String eventRuleBookUrl; // PDF URL

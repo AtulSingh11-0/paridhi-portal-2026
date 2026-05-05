@@ -1,6 +1,5 @@
 package com.megatronix.paridhi.model;
 
-import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.Domain;
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,6 +7,9 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
+
+import static com.megatronix.paridhi.constant.AppConstant.Storage.DEFAULT_EVENT_POSTER_FILE_ID;
+import static com.megatronix.paridhi.constant.AppConstant.Storage.DEFAULT_EVENT_POSTER_URL;
 
 @Getter
 @Setter
@@ -49,11 +51,11 @@ public class EventCombo extends Auditable {
 
 	@Column ( name = "event_combo_poster_url", nullable = false )
 	@Builder.Default
-	private String eventComboPosterUrl = AppConstant.DEFAULT_EVENT_POSTER_URL;
+	private String eventComboPosterUrl = DEFAULT_EVENT_POSTER_URL;
 
 	@Column ( name = "event_combo_poster_file_id", nullable = false )
 	@Builder.Default
-	private String eventComboPosterFileId = AppConstant.DEFAULT_EVENT_POSTER_FILE_ID;
+	private String eventComboPosterFileId = DEFAULT_EVENT_POSTER_FILE_ID;
 
 	@Column ( name = "event_combo_registration_fee", nullable = false )
 	private BigDecimal eventComboRegistrationFee;
