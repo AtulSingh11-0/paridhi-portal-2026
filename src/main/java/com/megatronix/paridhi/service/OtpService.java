@@ -16,6 +16,7 @@ import com.megatronix.paridhi.repository.OtpTokenRepository;
 import com.megatronix.paridhi.repository.UserRepository;
 import com.megatronix.paridhi.security.JwtService;
 import com.megatronix.paridhi.util.LoggingUtil;
+import com.megatronix.paridhi.util.SecurityContextUtil;
 import com.megatronix.paridhi.util.TokenSecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,15 +115,22 @@ public class OtpService {
 			throw new InvalidOtpException(format(TOKEN_INVALID_USER_MESSAGE, OTP, OtpToken.MAX_ATTEMPTS - latestOtp.getAttempts()));
 		}
 
-		// step-7: mark USER as verified and invalidate the used token
-		user.setVerified(true);
-		latestOtp.setUsed(true);
+		try {
+			// step-7: temporarily set the security context for auditing
+			SecurityContextUtil.setAuditUser(email);
 
-		// step-8: generate a JWT token for the USER upon successful verification
-		String jwtToken = jwtService.generateToken(user);
-		LoggingUtil.logSecurity(log, OTP_VERIFY, user, SUCCESS, format(OTP_VERIFIED_LOG, email));
+			// step-8: mark USER as verified and invalidate the used token
+			user.setVerified(true);
+			latestOtp.setUsed(true);
 
-		return OtpVerificationResponse.valid(jwtToken);
+			// step-9: generate a JWT token for the USER upon successful verification
+			String jwtToken = jwtService.generateToken(user);
+			LoggingUtil.logSecurity(log, OTP_VERIFY, user, SUCCESS, format(OTP_VERIFIED_LOG, email));
+
+			return OtpVerificationResponse.valid(jwtToken);
+		} finally {
+			SecurityContextUtil.clear();
+		}
 	}
 
 	@Transactional
@@ -183,19 +191,26 @@ public class OtpService {
 		// step-4: invalidate any active tokens and enforce cooldown window
 		handleActiveTokensAndCooldown(user);
 
-		// step-5: create and persist a new OTP token
-		var otp = OtpToken.builder().user(user).build();
-		var savedOtp = otpTokenRepository.save(otp);
+		try {
+			// step-5: temporarily set the security context for auditing
+			SecurityContextUtil.setAuditUser(email);
 
-		if ( log.isDebugEnabled() ) {
-			log.debug("OTP token persisted with ID: {} for email: {}", savedOtp.getOtpId(), email);
+			// step-6: create and persist a new OTP token
+			var otp = OtpToken.builder().user(user).build();
+			var savedOtp = otpTokenRepository.save(otp);
+
+			if ( log.isDebugEnabled() ) {
+				log.debug("OTP token persisted with ID: {} for email: {}", savedOtp.getOtpId(), email);
+			}
+
+			// step-7: dispatch the OTP via email
+			emailService.sendOtp(user.getEmail(), user.getName(), savedOtp.getOtp(), user);
+			LoggingUtil.logOperation(log, OTP_GENERATE, AppConstant.Service.OTP, user, format(OTP_SENT_LOG, email));
+
+			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
+		} finally {
+			SecurityContextUtil.clear();
 		}
-
-		// step-6: dispatch the OTP via email
-		emailService.sendOtp(user.getEmail(), user.getName(), savedOtp.getOtp(), user);
-		LoggingUtil.logOperation(log, OTP_GENERATE, AppConstant.Service.OTP, user, format(OTP_SENT_LOG, email));
-
-		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
 	}
 
 	private void handleActiveTokensAndCooldown ( User user ) {

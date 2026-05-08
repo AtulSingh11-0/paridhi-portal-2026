@@ -12,6 +12,7 @@ import com.megatronix.paridhi.model.User;
 import com.megatronix.paridhi.repository.PasswordResetTokenRepository;
 import com.megatronix.paridhi.repository.UserRepository;
 import com.megatronix.paridhi.util.LoggingUtil;
+import com.megatronix.paridhi.util.SecurityContextUtil;
 import com.megatronix.paridhi.util.TokenSecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,22 +80,29 @@ public class PasswordResetService {
 		// step-3: invalidate any active tokens and enforce cooldown window
 		handleActiveTokensAndCooldown(user);
 
-		// step-4: create and persist a new password reset token
-		var resetToken = PasswordResetToken.builder()
-			.user(user)
-			.build();
-		var savedResetToken = passwordResetTokenRepository.save(resetToken);
+		try {
+			// step-4: temporarily set the security context for auditing
+			SecurityContextUtil.setAuditUser(email);
 
-		if ( log.isDebugEnabled() ) {
-			log.debug("Password reset token persisted for user: {} (ID: {})", email, user.getUserId());
+			// step-5: create and persist a new password reset token
+			var resetToken = PasswordResetToken.builder()
+				.user(user)
+				.build();
+			var savedResetToken = passwordResetTokenRepository.save(resetToken);
+
+			if ( log.isDebugEnabled() ) {
+				log.debug("Password reset token persisted for user: {} (ID: {})", email, user.getUserId());
+			}
+
+			// step-6: dispatch the reset token via email
+			emailService.sendPasswordResetToken(user.getEmail(), user.getName(), savedResetToken.getToken(), user);
+			LoggingUtil.logOperation(log, PASSWORD_RESET_REQUEST, AppConstant.Service.PASSWORD_RESET, user,
+				format(PASSWORD_RESET_SENT_LOG, email));
+
+			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.PASSWORD_RESET));
+		} finally {
+			SecurityContextUtil.clear();
 		}
-
-		// step-5: dispatch the reset token via email
-		emailService.sendPasswordResetToken(user.getEmail(), user.getName(), savedResetToken.getToken(), user);
-		LoggingUtil.logOperation(log, PASSWORD_RESET_REQUEST, AppConstant.Service.PASSWORD_RESET, user,
-			format(PASSWORD_RESET_SENT_LOG, email));
-
-		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.PASSWORD_RESET));
 	}
 
 	@Transactional
@@ -148,13 +156,20 @@ public class PasswordResetService {
 			throw new IllegalArgumentException(PASSWORD_RESET_SAME_PASSWORD_USER_MESSAGE);
 		}
 
-		// step-6: encode and update the new password, then invalidate the token
-		user.setPassword(passwordEncoder.encode(newPassword));
-		latestToken.setUsed(true);
+		try {
+			// step-6: temporarily set the security context for auditing
+			SecurityContextUtil.setAuditUser(email);
 
-		LoggingUtil.logSecurity(log, PASSWORD_RESET_CONFIRM, user, SUCCESS, format(PASSWORD_RESET_SUCCESS_LOG, email));
+			// step-7: encode and update the new password, then invalidate the token
+			user.setPassword(passwordEncoder.encode(newPassword));
+			latestToken.setUsed(true);
 
-		return MessageResponse.of(PASSWORD_RESET_SUCCESSFUL);
+			LoggingUtil.logSecurity(log, PASSWORD_RESET_CONFIRM, user, SUCCESS, format(PASSWORD_RESET_SUCCESS_LOG, email));
+
+			return MessageResponse.of(PASSWORD_RESET_SUCCESSFUL);
+		} finally {
+			SecurityContextUtil.clear();
+		}
 	}
 
 	@Transactional ( readOnly = true )
