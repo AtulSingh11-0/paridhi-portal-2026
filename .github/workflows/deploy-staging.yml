@@ -19,9 +19,6 @@ jobs:
                     distribution: 'temurin'
                     cache: maven
 
-            -   name: Build Spring Boot Jar
-                run: mvn clean package -DskipTests
-
             # 2. Login to Docker Hub
             -   name: Log in to Docker Hub
                 uses: docker/login-action@v3
