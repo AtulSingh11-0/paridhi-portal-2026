@@ -19,10 +19,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
-import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
-import org.springframework.security.web.util.matcher.OrRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
@@ -30,6 +26,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
 	private final RateLimitingFilter rateLimitingFilter;
 	private final JwtAuthenticationFilter jwtAuthFilter;
 	private final UserDetailsServiceImpl userDetailsService;
@@ -41,7 +38,8 @@ public class SecurityConfig {
 		JwtAuthenticationFilter jwtAuthFilter,
 		UserDetailsServiceImpl userDetailsService,
 		JwtAuthenticationEntryPoint jwtAuthEntryPoint,
-		EndpointVisibilityFilter endpointVisibilityFilter ) {
+		EndpointVisibilityFilter endpointVisibilityFilter
+	) {
 		this.jwtAuthFilter = jwtAuthFilter;
 		this.jwtAuthEntryPoint = jwtAuthEntryPoint;
 		this.rateLimitingFilter = rateLimitingFilter;
@@ -50,18 +48,15 @@ public class SecurityConfig {
 	}
 
 	private static final String[] WHITELISTED_URLS = {
-		"/", // Landing page
-		"/actuator/**", // Actuator endpoints
-		"/api/auth/**", // Auth, Password Reset, and OTP Controllers
-		"/api/events/**", // Public event browsing
-		"/api/event-combos/**", // Public combo browsing
-		"/api/mrd/register", // Public registration
-	};
-
-	private static final String[] SWAGGER_URLS = {
-		"/swagger-ui/**", // Swagger UI
-		"/v3/api-docs/**", // OpenAPI docs
-		"/swagger-ui.html", // Swagger UI HTML
+		"/",                         // Landing page
+		"/actuator/**",              // Actuator endpoints
+		"/api/auth/**",              // Auth, Password Reset, and OTP Controllers
+		"/api/events/**",            // Public event browsing
+		"/api/event-combos/**",      // Public combo browsing
+		"/api/mrd/register",         // Public registration
+		"/swagger-ui/**",            // Swagger UI
+		"/v3/api-docs/**",           // OpenAPI docs
+		"/swagger-ui.html",          // Swagger UI HTML
 	};
 
 	@Bean
@@ -71,36 +66,14 @@ public class SecurityConfig {
 			.csrf(AbstractHttpConfigurer::disable)
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(WHITELISTED_URLS).permitAll()
-				.requestMatchers(SWAGGER_URLS).hasAnyRole("ADMIN", "SUPERADMIN")
-				.anyRequest().authenticated())
-			.httpBasic(Customizer.withDefaults())
-			.exceptionHandling(exception -> {
-				// use JWT entry point for API endpoints to return JSON errors
-				exception.defaultAuthenticationEntryPointFor(
-					jwtAuthEntryPoint,
-					PathPatternRequestMatcher.withDefaults().matcher("/api/**"));
-
-				// use Basic Auth entry point for Swagger to trigger browser login popup
-				BasicAuthenticationEntryPoint basicEntryPoint = new BasicAuthenticationEntryPoint();
-				basicEntryPoint.setRealmName("Paridhi Admin Portal");
-				try {
-					basicEntryPoint.afterPropertiesSet();
-				} catch ( Exception e ) {
-					throw new IllegalStateException("Failed to initialize BasicAuthenticationEntryPoint", e);
-				}
-
-				PathPatternRequestMatcher.Builder pathBuilder = PathPatternRequestMatcher.withDefaults();
-
-				RequestMatcher swaggerMatcher = new OrRequestMatcher(
-					pathBuilder.matcher("/swagger-ui/**"),
-					pathBuilder.matcher("/v3/api-docs/**"),
-					pathBuilder.matcher("/swagger-ui.html")
-				);
-
-				exception.defaultAuthenticationEntryPointFor(basicEntryPoint, swaggerMatcher);
-			})
+				.anyRequest().authenticated()
+			)
+			.exceptionHandling(ex -> ex
+				.authenticationEntryPoint(jwtAuthEntryPoint)
+			)
 			.sessionManagement(session -> session
-				.sessionCreationPolicy(STATELESS))
+				.sessionCreationPolicy(STATELESS)
+			)
 			.authenticationProvider(authenticationProvider())
 			.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)

@@ -22,7 +22,7 @@ public class OpenApiConfig {
 				.description("API documentation for Paridhi application")
 				.contact(new Contact()
 					.name("Atul Singh")
-					.email("cocatul11@gmailcom")
+					.email("cocatul11@gmail.com")
 				)
 			).addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
 			.components(new Components()
