@@ -32,7 +32,7 @@ services:
             - paridhi-network
 
     app:
-        image: ${DOCKER_USERNAME}/paridhi-portal-staging-2026:v1.0
+        image: ${DOCKER_USERNAME}/paridhi-portal:staging
         container_name: paridhi-portal
         restart: unless-stopped
         depends_on:
