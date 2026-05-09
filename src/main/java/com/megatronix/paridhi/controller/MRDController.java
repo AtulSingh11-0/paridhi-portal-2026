@@ -85,9 +85,10 @@ public class MRDController {
 	@ApiResponse ( responseCode = "403", description = "Insufficient permissions",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< MRDResponse > registerMRDByAdmin (
-		@Valid @RequestBody AdminMRDRequest request
+		@Valid @RequestBody AdminMRDRequest request,
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User adminUser
 	) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(mrdService.performUserMRDByAdmin(request));
+		return ResponseEntity.status(HttpStatus.CREATED).body(mrdService.performUserMRDByAdmin(request, adminUser));
 	}
 
 
