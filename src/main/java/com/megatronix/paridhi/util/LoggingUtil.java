@@ -50,6 +50,20 @@ public class LoggingUtil {
 	}
 
 	/**
+	 * Log an operation with a named actor (for scheduled tasks or system processes)
+	 */
+	public static void logSystemOperation ( Logger logger, String operation, String resourceType, String actor, String details ) {
+		logger.info(
+			"Operation: {} | Resource: {} | User: {} | Details: {} | RequestID: {}",
+			operation,
+			resourceType,
+			actor,
+			details,
+			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : actor
+		);
+	}
+
+	/**
 	 * Log an error with full context
 	 */
 	public static void logError ( Logger logger, String operation, String resourceType, User user, String details, Throwable error ) {

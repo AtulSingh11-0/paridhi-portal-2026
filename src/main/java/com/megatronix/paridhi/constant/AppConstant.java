@@ -88,6 +88,7 @@ public final class AppConstant {
 		public static final String USER_AGENT = "User-Agent";
 		public static final String X_FORWARDED_FOR = "X-Forwarded-For";
 
+		public static final String SYSTEM = "system";
 		public static final String ANONYMOUS = "anonymous";
 		public static final String ANONYMOUS_USER = "anonymousUser";
 		public static final String UNKNOWN = "unknown";
