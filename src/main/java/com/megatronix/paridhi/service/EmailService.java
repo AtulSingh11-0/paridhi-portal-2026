@@ -3,18 +3,14 @@ package com.megatronix.paridhi.service;
 import com.megatronix.paridhi.constant.Position;
 import com.megatronix.paridhi.exception.MailSendingException;
 import com.megatronix.paridhi.model.User;
+import com.megatronix.paridhi.service.email.EmailProvider;
 import com.megatronix.paridhi.util.EmailTemplateUtil;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import static com.megatronix.paridhi.constant.AppConstant.Common.UTF_8;
 import static com.megatronix.paridhi.constant.AppConstant.Service.EMAIL;
 import static com.megatronix.paridhi.constant.MessageConstant.EmailConstants.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
@@ -25,18 +21,19 @@ import static java.lang.String.format;
 
 /**
  * Service for sending asynchronous emails for various system operations.
+ * Delegates to a profile-specific {@link EmailProvider} implementation.
  */
 @Service
 public class EmailService {
 
 	private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-	private final JavaMailSender javaMailSender;
+	private final EmailProvider emailProvider;
 
 	@Value ( "${spring.mail.username}" )
 	private String fromEmail;
 
-	public EmailService ( JavaMailSender javaMailSender ) {
-		this.javaMailSender = javaMailSender;
+	public EmailService ( EmailProvider emailProvider ) {
+		this.emailProvider = emailProvider;
 	}
 
 	/**
@@ -52,23 +49,17 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, PASSWORD_RESET, to));
 
 		try {
-			// step-2: create and configure the mime message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Password Reset Request", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getResetTokenContent(name, token);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Password Reset Request", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getResetTokenContent(name, token), true);
+			emailProvider.sendHtmlEmail(fromEmail, new String[]{to}, subject, htmlBody);
 
-			// step-3: send the email
-			javaMailSender.send(message);
-
-			// step-4: log the successful completion
+			// step-3: log the successful completion
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, PASSWORD_RESET, to));
 
-		} catch ( MessagingException e ) {
-			// step-5: handle failure with audit logging
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure with audit logging
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, PASSWORD_RESET, to, e.getMessage()), e);
 			throw new MailSendingException("Failed to send password reset email: " + e.getMessage(), e.getCause());
 		}
@@ -87,23 +78,17 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, OTP_VERIFICATION, to));
 
 		try {
-			// step-2: create and configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Email Verification OTP", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getOtpContent(name, otp);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Email Verification OTP", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getOtpContent(name, otp), true);
+			emailProvider.sendHtmlEmail(fromEmail, new String[]{to}, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, OTP_VERIFICATION, to));
 
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, OTP_VERIFICATION, to, e.getMessage()), e);
 			throw new MailSendingException("Failed to send OTP email: " + e.getMessage(), e.getCause());
 		}
@@ -122,23 +107,17 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, MRD_WELCOME, to));
 
 		try {
-			// step-2: configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Registration Confirmation", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getMRDContent(name, gid);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Registration Confirmation", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getMRDContent(name, gid), true);
+			emailProvider.sendHtmlEmail(fromEmail, new String[]{to}, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, MRD_WELCOME, to));
 
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, MRD_WELCOME, to, e.getMessage()), e);
 			throw new MailSendingException("Failed to send MRD welcome email: " + e.getMessage(), e.getCause());
 		}
@@ -158,23 +137,17 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, REGISTRATION, recipientCount));
 
 		try {
-			// step-2: configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Event Registration Confirmation", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getRDContent(teamName, eventName, tid);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Event Registration Confirmation", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getRDContent(teamName, eventName, tid), true);
+			emailProvider.sendHtmlEmail(fromEmail, to, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, REGISTRATION, recipientCount));
 
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, REGISTRATION, recipientCount, e.getMessage()), e);
 			throw new MailSendingException("Failed to send event registration email: " + e.getMessage(), e.getCause());
 		}
@@ -194,23 +167,17 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, QUALIFICATION, recipientCount));
 
 		try {
-			// step-2: configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Congratulations on Qualifying for Finals!", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getQualificationContent(teamName, eventName, tid);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Congratulations on Qualifying for Finals!", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getQualificationContent(teamName, eventName, tid), true);
+			emailProvider.sendHtmlEmail(fromEmail, to, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, QUALIFICATION, recipientCount));
 
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, QUALIFICATION, recipientCount, e.getMessage()), e);
 			throw new MailSendingException("Failed to send qualification congratulations: " + e.getMessage(), e.getCause());
 		}
@@ -230,23 +197,17 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, POSITION, recipientCount));
 
 		try {
-			// step-2: configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Congratulations on Securing %s Position!", EMAIL_SUBJECT_PREFIX, position);
+			String htmlBody = EmailTemplateUtil.getPositionContent(teamName, eventName, tid, position);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Congratulations on Securing %s Position!", EMAIL_SUBJECT_PREFIX, position));
-			helper.setText(EmailTemplateUtil.getPositionContent(teamName, eventName, tid, position), true);
+			emailProvider.sendHtmlEmail(fromEmail, to, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, POSITION, recipientCount));
 
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, POSITION, recipientCount, e.getMessage()), e);
 			throw new MailSendingException("Failed to send position congratulations: " + e.getMessage(), e.getCause());
 		}
@@ -265,22 +226,16 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, CREDENTIALS, to));
 
 		try {
-			// step-2: configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Your Account Credentials", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getProfileCredentialsContent(name, to, password);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Your Account Credentials", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getProfileCredentialsContent(name, to, password), true);
+			emailProvider.sendHtmlEmail(fromEmail, new String[]{to}, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, CREDENTIALS, to));
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, CREDENTIALS, to, e.getMessage()), e);
 			throw new MailSendingException("Failed to send profile credentials: " + e.getMessage(), e.getCause());
 		} catch ( Exception e ) {
@@ -302,22 +257,16 @@ public class EmailService {
 		logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENDING_LOG, format("%s & %s", MRD_WELCOME, CREDENTIALS), to));
 
 		try {
-			// step-2: configure message
-			MimeMessage message = javaMailSender.createMimeMessage();
-			MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8);
+			// step-2: generate HTML content and send via provider
+			String subject = format("%s - Registration Confirmation & Credentials", EMAIL_SUBJECT_PREFIX);
+			String htmlBody = EmailTemplateUtil.getConsolidatedEmailContent(to, name, password, gid);
 
-			helper.setFrom(fromEmail);
-			helper.setTo(to);
-			helper.setSubject(format("%s - Registration Confirmation & Credentials", EMAIL_SUBJECT_PREFIX));
-			helper.setText(EmailTemplateUtil.getConsolidatedEmailContent(to, name, password, gid), true);
+			emailProvider.sendHtmlEmail(fromEmail, new String[]{to}, subject, htmlBody);
 
-			// step-3: send email
-			javaMailSender.send(message);
-
-			// step-4: log success
+			// step-3: log success
 			logOperation(log, CREATE, EMAIL, user, format(EMAIL_SENT_LOG, format("%s & %s", MRD_WELCOME, CREDENTIALS), to));
-		} catch ( MessagingException e ) {
-			// step-5: handle failure
+		} catch ( MailSendingException e ) {
+			// step-4: handle failure
 			logError(log, CREATE, EMAIL, user, format(EMAIL_SEND_FAILED_LOG, "consolidated registration",
 				to, e.getMessage()), e);
 			throw new MailSendingException("Failed to send consolidated registration email: " + e.getMessage(), e.getCause());
