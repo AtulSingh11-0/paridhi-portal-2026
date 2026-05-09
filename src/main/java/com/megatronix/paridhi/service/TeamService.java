@@ -73,7 +73,9 @@ public class TeamService {
 	 */
 
 	@Transactional ( readOnly = true )
-	public List< UserRegisteredTeamsPublicResponse > getTeamsByUser ( String email ) {
+	public List< UserRegisteredTeamsPublicResponse > getTeamsByUser ( User user ) {
+		String email = user.getEmail();
+
 		if ( log.isDebugEnabled() ) {
 			log.debug("Fetching all teams for user: {}", email);
 		}
@@ -81,7 +83,7 @@ public class TeamService {
 		List< String > userGids = mrdRepository.findGidListByUserEmail(email);
 
 		if ( userGids.isEmpty() ) {
-			logError(log, READ, TEAM, null, format(TEAMS_NOT_FOUND_FOR_USER, email), null);
+			logError(log, READ, TEAM, user, format(TEAMS_NOT_FOUND_FOR_USER, email), null);
 			return List.of();
 		}
 
@@ -101,7 +103,7 @@ public class TeamService {
 			}
 		}
 
-		logOperation(log, READ, TEAM, null, format(TEAMS_FETCHED, teams.size(), "all user GIDs", email, "N/A"));
+		logOperation(log, READ, TEAM, user, format(TEAMS_FETCHED, teams.size(), "all user GIDs", email, user.getUserId()));
 
 		return gidTeamMap.entrySet().stream()
 			.map(entry -> UserRegisteredTeamsPublicResponse.of(entry.getKey(), entry.getValue()))
@@ -109,28 +111,30 @@ public class TeamService {
 	}
 
 	@Transactional ( readOnly = true )
-	public TeamPublicResponse getTeamByTid ( String tid, String email ) {
+	public TeamPublicResponse getTeamByTid ( String tid, User user ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Fetching public team with TID: {}", tid);
 		}
 
 		// step-1: fetch team safely
-		var team = fetchTeamSafely(tid, email, null);
+		var team = fetchTeamSafely(tid, user.getEmail(), user);
 
 		// step-2: audit log the retrieval
-		logOperation(log, READ, TEAM, null, format(TEAM_FETCHED, tid, email, "N/A"));
+		logOperation(log, READ, TEAM, user, format(TEAM_FETCHED, tid, user.getEmail(), user.getUserId()));
 
 		return TeamPublicResponse.fromTeam(team);
 	}
 
 	@Transactional ( readOnly = true )
-	public List< TeamPublicResponse > getTeamsByGid ( String gid, String email ) {
+	public List< TeamPublicResponse > getTeamsByGid ( String gid, User user ) {
+		String email = user.getEmail();
+
 		if ( log.isDebugEnabled() ) {
 			log.debug("Fetching teams by GID: {}", gid);
 		}
 
 		// step-1: verify the GID belongs to a valid user
-		verifyGidOwnership(gid, email, null);
+		verifyGidOwnership(gid, email, user);
 
 		// step-2: filter teams by GID
 		var teams = teamRepository.findAll().stream()
@@ -138,7 +142,7 @@ public class TeamService {
 			.toList();
 
 		// step-3: audit log the retrieval
-		logOperation(log, READ, TEAM, null, format(TEAMS_FETCHED, teams.size(), gid, email, "N/A"));
+		logOperation(log, READ, TEAM, user, format(TEAMS_FETCHED, teams.size(), gid, email, user.getUserId()));
 
 		return teams.stream()
 			.map(TeamPublicResponse::fromTeam)

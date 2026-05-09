@@ -1,6 +1,5 @@
 package com.megatronix.paridhi.service;
 
-import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.dto.request.AdminCreationRequest;
 import com.megatronix.paridhi.dto.request.LoginRequest;
@@ -30,6 +29,7 @@ import static com.megatronix.paridhi.constant.AppConstant.Common.FAILED;
 import static com.megatronix.paridhi.constant.AppConstant.Common.SUCCESS;
 import static com.megatronix.paridhi.constant.AppConstant.Resource.*;
 import static com.megatronix.paridhi.constant.AppConstant.Security.BEARER;
+import static com.megatronix.paridhi.constant.AppConstant.Security.SYSTEM;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.EXPIRED_BLACKLISTED_TOKENS_PURGED;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -207,7 +207,7 @@ public class UserService {
 		}
 		// delete all blacklisted tokens that have expired
 		blacklistedTokenRepository.deleteAllExpiredTokens(Instant.now());
-		logOperation(log, TOKEN_CLEANUP, AppConstant.Resource.BLACKLISTED_TOKEN, null, EXPIRED_BLACKLISTED_TOKENS_PURGED);
+		logSystemOperation(log, TOKEN_CLEANUP, BLACKLISTED_TOKEN, SYSTEM, EXPIRED_BLACKLISTED_TOKENS_PURGED);
 	}
 
 	private User fetchUserByEmail ( String email ) {

@@ -99,7 +99,7 @@ public class MRDService {
 	}
 
 	@Transactional
-	public MRDResponse performUserMRDByAdmin ( AdminMRDRequest request ) {
+	public MRDResponse performUserMRDByAdmin ( AdminMRDRequest request, User adminUser ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Admin MRD registration request for email: {}", request.getEmail());
 		}
@@ -113,18 +113,18 @@ public class MRDService {
 			MRD savedMRD = createAndSaveMRD(existingUser);
 			emailService.sendMRDWelcome(existingUser.getEmail(), existingUser.getName(), savedMRD.getGid(), existingUser);
 
-			logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, null,
+			logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, adminUser,
 				format(MRD_REGISTERED_BY_ADMIN, existingUser.getEmail(), savedMRD.getGid()));
 
 			return from(savedMRD.getGid());
 		}
 
 		// step-2b: user doesn't exist — create a new account and then register MRD
-		User newUser = createAndSaveUserByAdmin(request);
+		User newUser = createAndSaveUserByAdmin(request, adminUser);
 		MRD savedMRD = createAndSaveMRD(newUser);
 		emailService.sendMRDWelcome(newUser.getEmail(), newUser.getName(), savedMRD.getGid(), newUser);
 
-		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, null,
+		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, adminUser,
 			format(MRD_REGISTERED_BY_ADMIN, newUser.getEmail(), savedMRD.getGid()));
 
 		return from(savedMRD.getGid());
@@ -301,7 +301,7 @@ public class MRDService {
 		}
 	}
 
-	private User createAndSaveUserByAdmin ( AdminMRDRequest request ) {
+	private User createAndSaveUserByAdmin ( AdminMRDRequest request, User adminUser ) {
 		// step-1: build and persist a new user account with a random temporary password
 		var user = User.builder()
 			.name(request.getName())
@@ -319,7 +319,7 @@ public class MRDService {
 		User savedUser = userRepository.save(user);
 
 		// step-2: audit log the new account creation
-		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, null,
+		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, adminUser,
 			format(MRD_USER_CREATED_BY_ADMIN, request.getEmail()));
 
 		return savedUser;
