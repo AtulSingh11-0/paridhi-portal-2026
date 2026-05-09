@@ -52,6 +52,6 @@ jobs:
                     key: ${{ secrets.VPS_SSH_KEY }}
                     script: |
                         cd /root/paridhi-portal-staging
-                        docker compose down
-                        docker compose -f docker-compose.staging.yml pull app
+                        docker compose -f docker-compose.staging.yml --env-file .env.docker down --rmi local
+                        docker compose -f docker-compose.staging.yml --env-file .env.docker pull app
                         docker compose -f docker-compose.staging.yml --env-file .env.docker up -d
