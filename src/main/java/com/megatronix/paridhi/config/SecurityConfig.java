@@ -33,12 +33,13 @@ public class SecurityConfig {
 	private final JwtAuthenticationEntryPoint jwtAuthEntryPoint;
 	private final EndpointVisibilityFilter endpointVisibilityFilter;
 
-	public SecurityConfig(
-			RateLimitingFilter rateLimitingFilter,
-			JwtAuthenticationFilter jwtAuthFilter,
-			UserDetailsServiceImpl userDetailsService,
-			JwtAuthenticationEntryPoint jwtAuthEntryPoint,
-			EndpointVisibilityFilter endpointVisibilityFilter) {
+	public SecurityConfig (
+		RateLimitingFilter rateLimitingFilter,
+		JwtAuthenticationFilter jwtAuthFilter,
+		UserDetailsServiceImpl userDetailsService,
+		JwtAuthenticationEntryPoint jwtAuthEntryPoint,
+		EndpointVisibilityFilter endpointVisibilityFilter
+	) {
 		this.jwtAuthFilter = jwtAuthFilter;
 		this.jwtAuthEntryPoint = jwtAuthEntryPoint;
 		this.rateLimitingFilter = rateLimitingFilter;
@@ -47,52 +48,52 @@ public class SecurityConfig {
 	}
 
 	private static final String[] WHITELISTED_URLS = {
-			"/", // Landing page
-			"/actuator/**", // Actuator endpoints
-			"/api/auth/**", // Auth, Password Reset, and OTP Controllers
-			"/api/events/**", // Public event browsing
-			"/api/event-combos/**", // Public combo browsing
-			"/api/mrd/register", // Public registration
-			"/swagger-ui/**", // Swagger UI
-			"/v3/api-docs/**", // OpenAPI docs
-			"/swagger-ui.html", // Swagger UI HTML
+		"/",                    // Landing page
+		"/api/auth/**",         // Auth, Password Reset, and OTP Controllers
+		"/api/events/**",       // Public event browsing
+		"/api/event-combos/**", // Public combo browsing
+		"/api/mrd/register",    // Public registration
+		"/swagger-ui/**",       // Swagger UI
+		"/v3/api-docs/**",      // OpenAPI docs
+		"/swagger-ui.html",     // Swagger UI HTML
+		"/actuator/**",         // Actuator endpoints
 	};
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain securityFilterChain ( HttpSecurity http ) throws Exception {
 		http
-				.cors(Customizer.withDefaults())
-				.csrf(AbstractHttpConfigurer::disable)
-				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(WHITELISTED_URLS).permitAll()
-						.anyRequest().authenticated())
-				.exceptionHandling(ex -> ex
-						.authenticationEntryPoint(jwtAuthEntryPoint))
-				.sessionManagement(session -> session
-						.sessionCreationPolicy(STATELESS))
-				.authenticationProvider(authenticationProvider())
-				.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-				.addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)
-				.addFilterBefore(endpointVisibilityFilter, RateLimitingFilter.class);
+			.cors(Customizer.withDefaults())
+			.csrf(AbstractHttpConfigurer::disable)
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(WHITELISTED_URLS).permitAll()
+				.anyRequest().authenticated())
+			.exceptionHandling(ex -> ex
+				.authenticationEntryPoint(jwtAuthEntryPoint))
+			.sessionManagement(session -> session
+				.sessionCreationPolicy(STATELESS))
+			.authenticationProvider(authenticationProvider())
+			.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)
+			.addFilterBefore(endpointVisibilityFilter, RateLimitingFilter.class);
 
 		return http.build();
 	}
 
 	@Bean
-	public AuthenticationProvider authenticationProvider() {
+	public AuthenticationProvider authenticationProvider () {
 		DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(
-				userDetailsService);
+			userDetailsService);
 		authProvider.setPasswordEncoder(passwordEncoder());
 		return authProvider;
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+	public AuthenticationManager authenticationManager ( AuthenticationConfiguration config ) throws Exception {
 		return config.getAuthenticationManager();
 	}
 
 	@Bean
-	public BCryptPasswordEncoder passwordEncoder() {
+	public BCryptPasswordEncoder passwordEncoder () {
 		return new BCryptPasswordEncoder();
 	}
 }
