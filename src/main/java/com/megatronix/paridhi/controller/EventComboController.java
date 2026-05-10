@@ -43,39 +43,6 @@ public class EventComboController {
 
 	// Public endpoints
 
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
-	@GetMapping
-	@SecurityRequirement ( name = "Bearer Authentication" )
-	@Operation (
-		summary = "Get all event combos (Super Admin)",
-		description = "Retrieves all event combos grouped by domain. Each object contains a domain key and a list of combos. Restricted to Super Admin only."
-	)
-	@ApiResponse ( responseCode = "200", description = "Successfully retrieved categorized combos",
-		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventComboResponse.class ) ),
-			examples = @ExampleObject ( name = "Categorized combos", value = """
-				[
-				  {
-				    "domain": "CODING",
-				    "eventCombos": [
-				      {
-				        "id": 1,
-				        "domain": "CODING",
-				        "name": "Mega Coding Pack",
-				        "type": "COMBO",
-				        "description": "Includes all coding events.",
-				        "posterUrl": "https://ik.imagekit.io/...",
-				        "registrationFee": 250.00,
-				        "isRegistrationOpen": true
-				      }
-				    ]
-				  }
-				]""" ) ) )
-	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< List< CategorizedEventComboResponse > > getEventCombos () {
-		return ResponseEntity.ok(eventComboService.getAllEventCombos());
-	}
-
 	@GetMapping ( "/{eventComboId}" )
 	@Operation (
 		summary = "Get event combo by ID",
@@ -129,7 +96,44 @@ public class EventComboController {
 		return ResponseEntity.ok(eventComboService.getEventComboById(id));
 	}
 
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
+	// Authorized endpoints
+
+
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
+	@GetMapping
+	@SecurityRequirement ( name = "Bearer Authentication" )
+	@Operation (
+		summary = "Get all event combos (Super Admin)",
+		description = "Retrieves all event combos grouped by domain. Each object contains a domain key and a list of combos. Restricted to Super Admin only."
+	)
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved categorized combos",
+		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventComboResponse.class ) ),
+			examples = @ExampleObject ( name = "Categorized combos", value = """
+				[
+				  {
+				    "domain": "CODING",
+				    "eventCombos": [
+				      {
+				        "id": 1,
+				        "domain": "CODING",
+				        "name": "Mega Coding Pack",
+				        "type": "COMBO",
+				        "description": "Includes all coding events.",
+				        "posterUrl": "https://ik.imagekit.io/...",
+				        "registrationFee": 250.00,
+				        "isRegistrationOpen": true
+				      }
+				    ]
+				  }
+				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+	public ResponseEntity< List< CategorizedEventComboResponse > > getEventCombos () {
+		return ResponseEntity.ok(eventComboService.getAllEventCombos());
+	}
+
+
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
 	@GetMapping ( "/domains/{domain}" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
@@ -159,7 +163,7 @@ public class EventComboController {
 		return ResponseEntity.ok(eventComboService.getEventCombosByDomain(domain));
 	}
 
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
 	@GetMapping ( "/status" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
@@ -194,8 +198,6 @@ public class EventComboController {
 	) {
 		return ResponseEntity.ok(eventComboService.getEventCombosByStatus(isOpen));
 	}
-
-	// Authorized endpoints
 
 	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
 	@PostMapping

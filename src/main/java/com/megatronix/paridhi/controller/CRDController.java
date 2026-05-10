@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,11 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping ( "/api/crd/events" )
 @Tag ( name = "CRD", description = "Endpoints for managing CRD operations and fetching qualified teams for events." )
 public class CRDController {
+
 	private final CRDService crdService;
+
+	public CRDController ( CRDService crdService ) {
+		this.crdService = crdService;
+	}
 
 	// Authorized endpoints
 

@@ -104,155 +104,6 @@ public class EventController {
 		return ResponseEntity.ok(eventService.getAllEventsAndCombos());
 	}
 
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
-	@GetMapping ()
-	@SecurityRequirement ( name = "Bearer Authentication" )
-	@Operation (
-		summary = "Get all events (Super Admin)",
-		description = "Retrieves all events grouped by domain. Restricted to Super Admin only."
-	)
-	@ApiResponse ( responseCode = "200", description = "Successfully retrieved categorized events",
-		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
-			examples = @ExampleObject ( name = "Categorized events", value = """
-				[
-				  {
-				    "domain": "CODING",
-				    "events": [
-				      {
-				        "id": 4,
-				        "domain": "CODING",
-				        "name": "Code-O-Fiesta",
-				        "type": "MAIN",
-				        "date": 1778839200.000000000,
-				        "description": "Competitive coding event.",
-				        "venue": "Lab 1",
-				        "coordinatorDetails": ["John Doe: 9876543210"],
-				        "posterUrl": "https://ik.imagekit.io/...",
-				        "isTeamEvent": true,
-				        "minPlayers": 1,
-				        "maxPlayers": 4,
-				        "registrationFee": 150.00,
-				        "isRegistrationOpen": true
-				      }
-				    ]
-				  }
-				]""" ) ) )
-	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< List< CategorizedEventResponse > > getAllEvents () {
-		return ResponseEntity.ok(eventService.getAllEvents());
-	}
-
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
-	@GetMapping ( "/domains/{domain}" )
-	@SecurityRequirement ( name = "Bearer Authentication" )
-	@Operation (
-		summary = "Get events by domain (Super Admin)",
-		description = "Retrieves a flat list of events belonging to a specific domain. Restricted to Super Admin only."
-	)
-	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events for the domain",
-		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = EventPublicResponse.class ) ),
-			examples = @ExampleObject ( name = "Events by domain", value = """
-				[
-				  {
-				    "id": 4,
-				    "domain": "CODING",
-				    "name": "Code-O-Fiesta",
-				    "type": "MAIN",
-				    "date": 1778839200.000000000,
-				    "description": "Competitive coding event.",
-				    "venue": "Lab 1",
-				    "coordinatorDetails": ["John Doe: 9876543210"],
-				    "posterUrl": "https://ik.imagekit.io/...",
-				    "isTeamEvent": true,
-				    "minPlayers": 1,
-				    "maxPlayers": 4,
-				    "registrationFee": 150.00,
-				    "isRegistrationOpen": true
-				  }
-				]""" ) ) )
-	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< List< EventPublicResponse > > getEventsByDomain (
-		@Parameter ( description = "Domain to filter by", example = "CODING" ) @PathVariable Domain domain
-	) {
-		return ResponseEntity.ok(eventService.getEventsByDomain(domain));
-	}
-
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
-	@GetMapping ( "/status" )
-	@SecurityRequirement ( name = "Bearer Authentication" )
-	@Operation (
-		summary = "Get events by registration status (Super Admin)",
-		description = "Retrieves events where registration is either open or closed, grouped by domain. Restricted to Super Admin only."
-	)
-	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by registration status",
-		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
-			examples = @ExampleObject ( name = "Open events", value = """
-				[
-				  {
-				    "domain": "CODING",
-				    "events": [
-				      {
-				        "id": 4,
-				        "domain": "CODING",
-				        "name": "Code-O-Fiesta",
-				        "type": "MAIN",
-				        "date": 1778839200.000000000,
-				        "description": "Competitive coding event.",
-				        "venue": "Lab 1",
-				        "isTeamEvent": true,
-				        "isRegistrationOpen": true
-				      }
-				    ]
-				  }
-				]""" ) ) )
-	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< List< CategorizedEventResponse > > getEventsByStatus (
-		@Parameter ( description = "Whether to filter by open or closed registration", example = "true" )
-		@RequestParam ( name = "isOpen" ) boolean isOpen,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
-	) {
-		return ResponseEntity.ok(eventService.getEventsByRegistration(isOpen, user));
-	}
-
-	@PreAuthorize ( "hasRole('SUPERADMIN')" )
-	@GetMapping ( "/type/{eventType}" )
-	@SecurityRequirement ( name = "Bearer Authentication" )
-	@Operation (
-		summary = "Get events by type (Super Admin)",
-		description = "Retrieves events of a specific type (e.g., MAIN, ON_SPOT), grouped by domain. Restricted to Super Admin only."
-	)
-	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by type",
-		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
-			examples = @ExampleObject ( name = "MAIN events", value = """
-				[
-				  {
-				    "domain": "CODING",
-				    "events": [
-				      {
-				        "id": 4,
-				        "domain": "CODING",
-				        "name": "Code-O-Fiesta",
-				        "type": "MAIN",
-				        "date": 1778839200.000000000,
-				        "description": "Competitive coding event.",
-				        "venue": "Lab 1",
-				        "isTeamEvent": true,
-				        "isRegistrationOpen": true
-				      }
-				    ]
-				  }
-				]""" ) ) )
-	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
-		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< List< CategorizedEventResponse > > getEventsByType (
-		@Parameter ( description = "Type of event to filter by", example = "MAIN" ) @PathVariable EventType eventType
-	) {
-		return ResponseEntity.ok(eventService.getEventsByType(eventType));
-	}
-
 	@GetMapping ( "/{id}" )
 	@Operation (
 		summary = "Get event by ID",
@@ -294,6 +145,155 @@ public class EventController {
 	}
 
 	// Authorized endpoints
+
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
+	@GetMapping ()
+	@SecurityRequirement ( name = "Bearer Authentication" )
+	@Operation (
+		summary = "Get all events (Super Admin)",
+		description = "Retrieves all events grouped by domain. Restricted to Super Admin only."
+	)
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved categorized events",
+		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
+			examples = @ExampleObject ( name = "Categorized events", value = """
+				[
+				  {
+				    "domain": "CODING",
+				    "events": [
+				      {
+				        "id": 4,
+				        "domain": "CODING",
+				        "name": "Code-O-Fiesta",
+				        "type": "MAIN",
+				        "date": 1778839200.000000000,
+				        "description": "Competitive coding event.",
+				        "venue": "Lab 1",
+				        "coordinatorDetails": ["John Doe: 9876543210"],
+				        "posterUrl": "https://ik.imagekit.io/...",
+				        "isTeamEvent": true,
+				        "minPlayers": 1,
+				        "maxPlayers": 4,
+				        "registrationFee": 150.00,
+				        "isRegistrationOpen": true
+				      }
+				    ]
+				  }
+				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+	public ResponseEntity< List< CategorizedEventResponse > > getAllEvents () {
+		return ResponseEntity.ok(eventService.getAllEvents());
+	}
+
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
+	@GetMapping ( "/domains/{domain}" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
+	@Operation (
+		summary = "Get events by domain (Super Admin)",
+		description = "Retrieves a flat list of events belonging to a specific domain. Restricted to Super Admin only."
+	)
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events for the domain",
+		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = EventPublicResponse.class ) ),
+			examples = @ExampleObject ( name = "Events by domain", value = """
+				[
+				  {
+				    "id": 4,
+				    "domain": "CODING",
+				    "name": "Code-O-Fiesta",
+				    "type": "MAIN",
+				    "date": 1778839200.000000000,
+				    "description": "Competitive coding event.",
+				    "venue": "Lab 1",
+				    "coordinatorDetails": ["John Doe: 9876543210"],
+				    "posterUrl": "https://ik.imagekit.io/...",
+				    "isTeamEvent": true,
+				    "minPlayers": 1,
+				    "maxPlayers": 4,
+				    "registrationFee": 150.00,
+				    "isRegistrationOpen": true
+				  }
+				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+	public ResponseEntity< List< EventPublicResponse > > getEventsByDomain (
+		@Parameter ( description = "Domain to filter by", example = "CODING" ) @PathVariable Domain domain
+	) {
+		return ResponseEntity.ok(eventService.getEventsByDomain(domain));
+	}
+
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
+	@GetMapping ( "/status" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
+	@Operation (
+		summary = "Get events by registration status (Super Admin)",
+		description = "Retrieves events where registration is either open or closed, grouped by domain. Restricted to Super Admin only."
+	)
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by registration status",
+		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
+			examples = @ExampleObject ( name = "Open events", value = """
+				[
+				  {
+				    "domain": "CODING",
+				    "events": [
+				      {
+				        "id": 4,
+				        "domain": "CODING",
+				        "name": "Code-O-Fiesta",
+				        "type": "MAIN",
+				        "date": 1778839200.000000000,
+				        "description": "Competitive coding event.",
+				        "venue": "Lab 1",
+				        "isTeamEvent": true,
+				        "isRegistrationOpen": true
+				      }
+				    ]
+				  }
+				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+	public ResponseEntity< List< CategorizedEventResponse > > getEventsByStatus (
+		@Parameter ( description = "Whether to filter by open or closed registration", example = "true" )
+		@RequestParam ( name = "isOpen" ) boolean isOpen,
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
+		return ResponseEntity.ok(eventService.getEventsByRegistration(isOpen, user));
+	}
+
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
+	@GetMapping ( "/type/{eventType}" )
+	@SecurityRequirement ( name = "Bearer Authentication" )
+	@Operation (
+		summary = "Get events by type (Super Admin)",
+		description = "Retrieves events of a specific type (e.g., MAIN, ON_SPOT), grouped by domain. Restricted to Super Admin only."
+	)
+	@ApiResponse ( responseCode = "200", description = "Successfully retrieved events by type",
+		content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = CategorizedEventResponse.class ) ),
+			examples = @ExampleObject ( name = "MAIN events", value = """
+				[
+				  {
+				    "domain": "CODING",
+				    "events": [
+				      {
+				        "id": 4,
+				        "domain": "CODING",
+				        "name": "Code-O-Fiesta",
+				        "type": "MAIN",
+				        "date": 1778839200.000000000,
+				        "description": "Competitive coding event.",
+				        "venue": "Lab 1",
+				        "isTeamEvent": true,
+				        "isRegistrationOpen": true
+				      }
+				    ]
+				  }
+				]""" ) ) )
+	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
+		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
+	public ResponseEntity< List< CategorizedEventResponse > > getEventsByType (
+		@Parameter ( description = "Type of event to filter by", example = "MAIN" ) @PathVariable EventType eventType
+	) {
+		return ResponseEntity.ok(eventService.getEventsByType(eventType));
+	}
 
 	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
 	@PostMapping ()

@@ -33,7 +33,6 @@ public class MRDController {
 
 	// Public Endpoints
 
-	//  @PreAuthorize("hasAnyRole('ADMIN', 'SUPERADMIN')")
 	@PostMapping ( "/register" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
@@ -94,7 +93,7 @@ public class MRDController {
 
 	// Authorized endpoints
 
-	@PreAuthorize ( "hasAnyRole('USER', 'ADMIN', 'SUPERADMIN')" )
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
 	@GetMapping ( "/user/{email}" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
@@ -119,7 +118,7 @@ public class MRDController {
 		return ResponseEntity.ok(mrdService.getUserMRDs(email, user));
 	}
 
-	@PreAuthorize ( "hasAnyRole('USER', 'ADMIN', 'SUPERADMIN')" )
+	@PreAuthorize ( "hasAnyRole('ADMIN', 'SUPERADMIN')" )
 	@GetMapping ( "/user/{email}/gids" )
 	@SecurityRequirement ( name = "Bearer Authentication" )
 	@Operation (
