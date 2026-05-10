@@ -27,14 +27,14 @@ import static java.lang.String.format;
 public class CRDService {
 
 	private static final Logger log = LoggerFactory.getLogger(CRDService.class);
+	private final MRDRepository mrdRepository;
 	private final TeamRepository teamRepository;
 	private final EventRepository eventRepository;
-	private final MRDRepository mrdRepository;
 
 	public CRDService (
+		MRDRepository mrdRepository,
 		TeamRepository teamRepository,
-		EventRepository eventRepository,
-		MRDRepository mrdRepository
+		EventRepository eventRepository
 	) {
 		this.teamRepository = teamRepository;
 		this.eventRepository = eventRepository;

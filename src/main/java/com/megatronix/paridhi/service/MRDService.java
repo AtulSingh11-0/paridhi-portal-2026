@@ -101,11 +101,11 @@ public class MRDService {
 	@Transactional
 	public MRDResponse performUserMRDByAdmin ( AdminMRDRequest request, User adminUser ) {
 		if ( log.isDebugEnabled() ) {
-			log.debug("Admin MRD registration request for email: {}", request.getEmail());
+			log.debug("Admin MRD registration request for email: {}", request.email());
 		}
 
 		// step-1: check if a user account already exists for this email
-		var existingUserOptional = userRepository.findUserByEmail(request.getEmail());
+		var existingUserOptional = userRepository.findUserByEmail(request.email());
 
 		if ( existingUserOptional.isPresent() ) {
 			// step-2a: user already exists — register MRD against their existing account
@@ -304,14 +304,14 @@ public class MRDService {
 	private User createAndSaveUserByAdmin ( AdminMRDRequest request, User adminUser ) {
 		// step-1: build and persist a new user account with a random temporary password
 		var user = User.builder()
-			.name(request.getName())
-			.email(request.getEmail())
+			.name(request.name())
+			.email(request.email())
 			.password(passwordEncoder.encode(PASSWORD))
-			.phoneNumber(request.getContact())
-			.college(request.getCollege())
-			.year(request.getYear())
-			.department(request.getDepartment())
-			.rollNo(request.getRollNo())
+			.phoneNumber(request.contact())
+			.college(request.college())
+			.year(request.year())
+			.department(request.department())
+			.rollNo(request.rollNo())
 			.isVerified(true)
 			.isProfileCreated(true)
 			.build();
@@ -320,7 +320,7 @@ public class MRDService {
 
 		// step-2: audit log the new account creation
 		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, adminUser,
-			format(MRD_USER_CREATED_BY_ADMIN, request.getEmail()));
+			format(MRD_USER_CREATED_BY_ADMIN, request.email()));
 
 		return savedUser;
 	}
