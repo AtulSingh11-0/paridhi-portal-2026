@@ -1,8 +1,15 @@
-139.59.52.57.nip.io {
+{$DOMAIN_HOST} {
     # 1. Instantly block any request looking for hidden files
     @hidden path */.*
     respond @hidden 403 "Forbidden"
 
-    # 2. Route everything else to Spring Boot
-    reverse_proxy paridhi-portal:8080
+    # 2. Route Grafana traffic
+    handle_path /grafana* {
+        reverse_proxy grafana:3000
+    }
+
+    # 3. Route everything else to Spring Boot
+    handle {
+        reverse_proxy paridhi-portal:{$SERVER_PORT:8080}
+    }
 }

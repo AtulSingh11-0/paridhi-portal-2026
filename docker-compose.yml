@@ -1,24 +1,24 @@
 services:
-    mysql:
-        image: mysql:8.0
-        container_name: paridhi-mysql
-        restart: unless-stopped
-        environment:
-            MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
-            MYSQL_DATABASE: paridhi_dev_db
-        ports:
-            # HOST:CONTAINER (Maps your laptop's 3307 to the container's internal 3306)
-            - "3307:3306"
-        volumes:
-            - mysql-data:/var/lib/mysql
-        networks:
-            - paridhi-network
-        # Prevents Spring Boot from crashing by telling Docker when the DB is actually ready
-        healthcheck:
-            test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
-            interval: 10s
-            timeout: 5s
-            retries: 5
+#    mysql:
+#        image: mysql:8.0
+#        container_name: paridhi-mysql
+#        restart: unless-stopped
+#        environment:
+#            MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+#            MYSQL_DATABASE: paridhi_dev_db
+#        ports:
+#            # HOST:CONTAINER (Maps your laptop's 3307 to the container's internal 3306)
+#            - "3307:3306"
+#        volumes:
+#            - mysql-data:/var/lib/mysql
+#        networks:
+#            - paridhi-network
+#        # Prevents Spring Boot from crashing by telling Docker when the DB is actually ready
+#        healthcheck:
+#            test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+#            interval: 10s
+#            timeout: 5s
+#            retries: 5
 
     redis:
         image: redis:7.2-alpine
@@ -32,29 +32,70 @@ services:
         networks:
             - paridhi-network
 
-    app:
-        #        image: ${DOCKER_USERNAME}/paridhi-portal-2026:v4.1
-        image: localdev/paridhi-portal-2026:v4.1
-        container_name: paridhi-portal
+#    app:
+#        image: localdev/paridhi-portal-2026:v4.1
+#        container_name: paridhi-portal
+#        restart: unless-stopped
+#        depends_on:
+#            mysql:
+#                condition: service_healthy
+#            redis:
+#                condition: service_started
+#        ports:
+#            - "8080:8080"
+#        env_file:
+#            - .env.docker
+#        environment:
+#            - SPRING_PROFILES_ACTIVE=dev
+#            - LOKI_URL=http://loki:3100/loki/api/v1/push
+#        networks:
+#            - paridhi-network
+#        deploy:
+#            resources:
+#                limits:
+#                    memory: 1G
+
+    prometheus:
+        image: prom/prometheus:latest
+        container_name: paridhi-prometheus
         restart: unless-stopped
-        depends_on:
-            mysql:
-                condition: service_healthy
-            redis:
-                condition: service_started
         ports:
-            - "8080:8080"
-        env_file:
-            - .env.docker
-        environment:
-            - SPRING_PROFILES_ACTIVE=dev
-            - LOKI_URL=http://localhost:9999/void
+            - "9090:9090" # Expose to host so you can view Prometheus UI locally
+        volumes:
+            - ./prometheus-dev.yml:/etc/prometheus/prometheus.yml
+            - prometheus_data:/prometheus
         networks:
             - paridhi-network
-        deploy:
-            resources:
-                limits:
-                    memory: 1G
+
+    loki:
+        image: grafana/loki:latest
+        container_name: paridhi-loki
+        restart: unless-stopped
+        ports:
+            - "3100:3100" # Expose to host so IntelliJ app can push logs
+        command: -config.file=/etc/loki/local-config.yaml
+        volumes:
+            - loki_data:/loki
+        networks:
+            - paridhi-network
+
+    grafana:
+        image: grafana/grafana:latest
+        container_name: paridhi-grafana
+        restart: unless-stopped
+        ports:
+            - "3000:3000" # Expose to host so you can view Grafana dashboard locally
+        environment:
+            - GF_SECURITY_ADMIN_USER=${SUPER_ADMIN_EMAIL}
+            - GF_SECURITY_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
+            # Locally, Grafana runs on localhost:3000 without Caddy subpaths
+        volumes:
+            - grafana_data:/var/lib/grafana
+        networks:
+            - paridhi-network
+        depends_on:
+            - prometheus
+            - loki
 
 networks:
     paridhi-network:
@@ -63,3 +104,6 @@ networks:
 volumes:
     mysql-data:
     redis-data:
+    prometheus_data:
+    loki_data:
+    grafana_data:
