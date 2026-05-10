@@ -41,7 +41,7 @@ jobs:
                     host: ${{ secrets.VPS_IP }}
                     username: ${{ secrets.VPS_USERNAME }}
                     key: ${{ secrets.VPS_SSH_KEY }}
-                    source: "docker-compose.staging.yml,.env.docker,Caddyfile,prometheus-staging.yml"
+                    source: "docker-compose.staging.yml,.env.docker,Caddyfile,prometheus-staging.yml,grafana/"
                     target: "/root/paridhi-portal-staging"
 
             -   name: Restart Docker on VPS

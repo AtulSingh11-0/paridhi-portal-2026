@@ -2,15 +2,15 @@
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
 
+    <springProperty scope="context" name="appName" source="spring.application.name"
+        defaultValue="paridhi-portal" />
+    <springProperty scope="context" name="appEnv" source="spring.profiles.active"
+        defaultValue="default" />
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>
-                %d{yyyy-MM-dd HH:mm:ss.SSS}
-                %highlight(%-5level)
-                [%blue(%X{requestId})]
-                [%magenta(%thread)]
-                %yellow(%logger{36})
-                %msg%n
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{requestId})]
+                [%magenta(%thread)] %yellow(%logger{36}) | %msg%n
             </pattern>
         </encoder>
     </appender>
@@ -21,24 +21,28 @@
         </http>
 
         <labels>
-            app=${SPRING_APPLICATION_NAME}
-            env=${SPRING_PROFILES_ACTIVE}
+            app=${appName}
+            env=${appEnv}
         </labels>
 
         <structuredMetadata>off</structuredMetadata>
 
         <message>
-            <pattern>l=%level c=%logger{20} t=%thread reqId=%X{requestId} | %msg %ex</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{requestId})]
+                [%magenta(%thread)] %yellow(%logger{36}) | %msg%n
+            </pattern>
         </message>
     </appender>
 
     <springProfile name="dev">
         <root level="INFO">
             <appender-ref ref="CONSOLE" />
+            <appender-ref ref="LOKI" />
         </root>
 
         <logger name="com.megatronix.paridhi" level="DEBUG" additivity="false">
             <appender-ref ref="CONSOLE" />
+            <appender-ref ref="LOKI" />
         </logger>
     </springProfile>
 
@@ -48,7 +52,7 @@
             <appender-ref ref="LOKI" />
         </root>
 
-        <logger name="com.megatronix.paridhi" level="DEBUG" additivity="false">
+        <logger name="com.megatronix.paridhi" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE" />
             <appender-ref ref="LOKI" />
         </logger>
