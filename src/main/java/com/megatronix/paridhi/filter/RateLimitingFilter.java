@@ -61,7 +61,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 		@NonNull FilterChain filterChain
 	) throws ServletException, IOException {
 		String[] activeProfiles = environment.getActiveProfiles();
-		// step-1: environment bypass
+		String requestURI = request.getRequestURI();
+
+		// step-1: environment & endpoint bypass
 		if (
 			Arrays.asList(activeProfiles).contains("dev") ||
 				Arrays.asList(activeProfiles).contains("test")
@@ -69,6 +71,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 			if ( log.isInfoEnabled() ) {
 				log.info("Bypassing rate limiting in {} environment", join(", ", activeProfiles));
 			}
+			filterChain.doFilter(request, response);
+			return;
+		}
+
+		if ( requestURI.startsWith("/actuator") ) {
 			filterChain.doFilter(request, response);
 			return;
 		}

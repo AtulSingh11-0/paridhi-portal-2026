@@ -34,14 +34,13 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 		"/api/events",
 		"/api/event-combos",
 		"/api/teams",
-		"/swagger-ui",
-		"/v3/api-docs"
+		"/api/crd",
+		"/actuator"
 	);
 
 	public EndpointVisibilityFilter (
 		ObjectMapper objectMapper,
-		Environment environment
-	) {
+		Environment environment ) {
 		this.objectMapper = objectMapper;
 		this.environment = environment;
 	}
@@ -50,14 +49,11 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 	protected void doFilterInternal (
 		@NonNull HttpServletRequest request,
 		@NonNull HttpServletResponse response,
-		@NonNull FilterChain filterChain
-	) throws ServletException, IOException {
+		@NonNull FilterChain filterChain ) throws ServletException, IOException {
 		String[] activeProfiles = environment.getActiveProfiles();
 		// step-1: environment bypass
-		if (
-			Arrays.asList(activeProfiles).contains("dev") ||
-				Arrays.asList(activeProfiles).contains("test")
-		) {
+		if ( Arrays.asList(activeProfiles).contains("dev") ||
+			Arrays.asList(activeProfiles).contains("test") ) {
 			if ( log.isInfoEnabled() ) {
 				log.info("Bypassing endpoint visibility in {} environment", join(", ", activeProfiles));
 			}
@@ -92,8 +88,7 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 			HttpStatus.NOT_FOUND.value(),
 			"The requested endpoint does not exist.",
 			"Not Found",
-			path
-		);
+			path);
 
 		response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
 	}
