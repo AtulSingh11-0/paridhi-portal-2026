@@ -4,8 +4,8 @@
     respond @hidden 403 "Forbidden"
 
     # 2. Route Grafana traffic
-    handle_path /grafana* {
-        reverse_proxy grafana:3000
+    handle /grafana* {
+        reverse_proxy paridhi-grafana:3000
     }
 
     # 3. Route everything else to Spring Boot
