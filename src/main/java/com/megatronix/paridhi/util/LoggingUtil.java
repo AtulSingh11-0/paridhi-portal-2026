@@ -8,7 +8,7 @@ import org.slf4j.MDC;
 
 import java.util.UUID;
 
-public class LoggingUtil {
+public final class LoggingUtil {
 	private LoggingUtil () {
 	}
 

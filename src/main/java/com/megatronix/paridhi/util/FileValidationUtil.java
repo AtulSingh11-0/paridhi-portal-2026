@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
 
-public class FileValidationUtil {
+public final class FileValidationUtil {
 
 	private FileValidationUtil() {
 		// Private constructor to prevent instantiation
