@@ -3,8 +3,8 @@ global:
     evaluation_interval: 15s
 
 scrape_configs:
-    - job_name: 'paridhi-staging-spring-boot'
-      metrics_path: '/actuator/prometheus'
-      static_configs:
-          # Scrapes the internal actuator port 8081 of the app container
-          - targets: ['app:8081']
+    -   job_name: 'paridhi-staging-spring-boot'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+            # Scrapes the internal actuator port 8081 of the app container
+            -   targets: [ 'app:8081' ]
