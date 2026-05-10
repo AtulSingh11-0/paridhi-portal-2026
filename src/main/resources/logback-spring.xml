@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%X{requestId})] [%magenta(%thread)]
-                %yellow(%logger{36}) - %msg%n
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss.SSS}
+                %highlight(%-5level)
+                [%blue(%X{requestId})]
+                [%magenta(%thread)]
+                %yellow(%logger{36})
+                %msg%n
             </pattern>
         </encoder>
     </appender>
@@ -16,8 +21,8 @@
         </http>
 
         <labels>
-            app=paridhi-portal
-            env=dev
+            app=${SPRING_APPLICATION_NAME}
+            env=${SPRING_PROFILES_ACTIVE}
         </labels>
 
         <structuredMetadata>off</structuredMetadata>
@@ -27,15 +32,25 @@
         </message>
     </appender>
 
-    <springProfile name="dev | staging">
+    <springProfile name="dev">
         <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-<!--            <appender-ref ref="LOKI"/>-->
+            <appender-ref ref="CONSOLE" />
         </root>
 
         <logger name="com.megatronix.paridhi" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-<!--            <appender-ref ref="LOKI"/>-->
+            <appender-ref ref="CONSOLE" />
+        </logger>
+    </springProfile>
+
+    <springProfile name="staging | prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="LOKI" />
+        </root>
+
+        <logger name="com.megatronix.paridhi" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="LOKI" />
         </logger>
     </springProfile>
 
