@@ -26,7 +26,11 @@ jobs:
                     username: ${{ secrets.DOCKER_USERNAME }}
                     password: ${{ secrets.DOCKER_PASSWORD }}
 
-            # 3. Build the Image and Push to Registry
+            # 3. Set up Docker Buildx
+            -   name: Set up Docker Buildx
+                uses: docker/setup-buildx-action@v3
+
+            # 4. Build the Image and Push to Registry
             -   name: Build and Push Docker Image
                 uses: docker/build-push-action@v5
                 with:
@@ -36,7 +40,7 @@ jobs:
                     cache-from: type=gha
                     cache-to: type=gha,mode=max
 
-            # 4. Send deployment files to the server
+            # 5. Send deployment files to the server
             -   name: Copy deployment files
                 uses: appleboy/scp-action@v0.1.7
                 with:
@@ -51,7 +55,7 @@ jobs:
                         grafana/
                     target: "/home/${{ secrets.VPS_USERNAME }}/paridhi-portal-staging"
 
-            # 5. Restart Docker on VPS
+            # 6. Restart Docker on VPS
             -   name: Restart Docker on VPS
                 uses: appleboy/ssh-action@v1.0.3
                 with:
@@ -65,7 +69,7 @@ jobs:
                         docker compose -f docker-compose.staging.yml --env-file .env.docker up -d --remove-orphans
                         docker image prune -f
 
-            # 6. Verify Deployment
+            # 7. Verify Deployment
             -   name: Verify Deployment
                 uses: appleboy/ssh-action@v1.0.3
                 with:
