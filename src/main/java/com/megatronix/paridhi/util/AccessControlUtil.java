@@ -45,7 +45,7 @@ public final class AccessControlUtil {
 	public static void requireAdminAccess ( Logger log, User user, String operation, String resource ) {
 		// step-1: reject unauthenticated (null) users outright
 		if ( user == null ) {
-			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, null, FAILED,
+			LoggingUtil.logSecurity(log, AppConstant.Security.ACCESS_DENIED, FAILED,
 				format(AUTHENTICATION_REQUIRED, operation + " " + resource));
 			throw new ForbiddenAccessException(ACCESS_DENIED);
 		}

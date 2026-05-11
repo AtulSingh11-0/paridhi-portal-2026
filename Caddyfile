@@ -1,15 +1,84 @@
-{$DOMAIN_HOST} {
-    # 1. Instantly block any request looking for hidden files
-    @hidden path */.*
-    respond @hidden 403 "Forbidden"
+{
+    email official.megatronix@gmail.com
 
-    # 2. Route Grafana traffic
-    handle /grafana* {
+    servers {
+        trusted_proxies static private_ranges
+    }
+}
+
+api-staging.paridhi2k26.in {
+
+    # -----------------------------
+    # ENABLE COMPRESSION
+    # -----------------------------
+    encode gzip zstd
+
+    # -----------------------------------
+    # BLOCK INVALID HOST HEADERS
+    # -----------------------------------
+    @invalid_host not host api-staging.paridhi2k26.in
+    respond @invalid_host 403
+
+    # -----------------------------
+    # BLOCK HIDDEN FILES
+    # -----------------------------
+    @hidden path */.*
+    respond @hidden 403
+
+    # -----------------------------
+    # SECURITY HEADERS
+    # -----------------------------
+    header {
+
+        # Hide server info
+        -Server
+
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Clickjacking protection
+        X-Frame-Options "DENY"
+
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+
+        # Referrer control
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # HTTPS enforcement
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Disable powerful browser APIs
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+
+    # -----------------------------
+    # OPTIONAL: GRAFANA PROTECTION
+    # -----------------------------
+    @grafana path /grafana*
+
+    handle @grafana {
+
+        # Optional Basic Auth
+        basicauth {
+            admin $2a$14$BGU9EeaMrm0bW3roQT9Gn.v0yCyoAOJ4.cXO0cDNAO6Y/UzeBAqGW
+        }
+
         reverse_proxy paridhi-grafana:3000
     }
 
-    # 3. Route everything else to Spring Boot
+    # -----------------------------
+    # SPRING BOOT API
+    # -----------------------------
     handle {
-        reverse_proxy paridhi-portal:{$SERVER_PORT:8080}
+        reverse_proxy paridhi-portal:8080
+    }
+
+    # -----------------------------
+    # ACCESS LOGS
+    # -----------------------------
+    log {
+        output file /var/log/caddy/api-access.log
+        format json
     }
 }

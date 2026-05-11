@@ -18,6 +18,8 @@ services:
             interval: 10s
             timeout: 5s
             retries: 5
+        security_opt:
+            - no-new-privileges:true
 
     redis:
         image: redis:7.2-alpine
@@ -30,6 +32,8 @@ services:
             - redis-data:/data
         networks:
             - paridhi-network
+        security_opt:
+            -   no-new-privileges:true
 
     app:
         image: ${DOCKER_USERNAME}/paridhi-portal:staging
@@ -43,7 +47,7 @@ services:
             loki:
                 condition: service_started
         ports:
-            - "${SERVER_PORT:-8080}"
+            - "8080"
         env_file:
             - .env.docker
         environment:
@@ -53,12 +57,18 @@ services:
             - SPRING_DATA_REDIS_HOST=redis
             - SPRING_DATA_REDIS_PORT=6379
             - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+             SERVER_FORWARD_HEADERS_STRATEGY=framework
         networks:
             - paridhi-network
         deploy:
             resources:
                 limits:
                     memory: 1G
+        security_opt:
+            -   no-new-privileges:true
+        read_only: true
+        tmpfs:
+            - /tmp
 
     prometheus:
         image: prom/prometheus:latest
@@ -75,6 +85,8 @@ services:
             - prometheus_data:/prometheus
         networks:
             - paridhi-network
+        security_opt:
+            - no-new-privileges:true
 
     loki:
         image: grafana/loki:latest
@@ -86,6 +98,8 @@ services:
             - loki_data:/loki
         networks:
             - paridhi-network
+        security_opt:
+            - no-new-privileges:true
 
     grafana:
         image: grafana/grafana:latest
@@ -104,6 +118,10 @@ services:
         depends_on:
             - prometheus
             - loki
+        expose:
+            -   "3000"  # Grafana's default port
+        security_opt:
+            - no-new-privileges:true
 
     caddy:
         image: caddy:2-alpine
@@ -124,6 +142,8 @@ services:
         depends_on:
             - app
             - grafana
+        security_opt:
+            -   no-new-privileges:true
 
 networks:
     paridhi-network:

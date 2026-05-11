@@ -19,11 +19,15 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.megatronix.paridhi.constant.AppConstant.Service.CLOUDINARY;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.CREATE;
+
 /**
  * Service for handling file uploads and deletions with Cloudinary
  */
 @Service
 public class CloudinaryService implements ImageStorageService {
+
 	private static final Logger log = LoggerFactory.getLogger(CloudinaryService.class);
 	private final Cloudinary cloudinary;
 
@@ -52,13 +56,7 @@ public class CloudinaryService implements ImageStorageService {
 		String publicId = safeFileName + "_" + LocalDate.now() + "_" + UUID.randomUUID().toString().substring(0, 8);
 
 		// log the upload operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			AppConstant.Service.CLOUDINARY,
-			null,
-			String.format("Uploading file: %s (%d bytes) to folder: %s", safeFileName, file.getSize(), targetFolder)
-		);
+		LoggingUtil.logOperation(log, CREATE, CLOUDINARY, String.format("Uploading file: %s (%d bytes) to folder: %s", safeFileName, file.getSize(), targetFolder));
 
 		try {
 			// upload the file to cloudinary
@@ -80,9 +78,8 @@ public class CloudinaryService implements ImageStorageService {
 			// log the successful upload
 			LoggingUtil.logOperation(
 				log,
-				MessageConstant.Operation.CREATE,
-				AppConstant.Service.CLOUDINARY,
-				null,
+				CREATE,
+				CLOUDINARY,
 				String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.Storage.CLOUDINARY_IMAGE, fullPublicId)
 			);
 
@@ -92,9 +89,8 @@ public class CloudinaryService implements ImageStorageService {
 			// log the error
 			LoggingUtil.logError(
 				log,
-				MessageConstant.Operation.CREATE,
-				AppConstant.Service.CLOUDINARY,
-				null,
+				CREATE,
+				CLOUDINARY,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "upload file", file.getOriginalFilename(), e.getMessage()),
 				e
 			);
@@ -117,8 +113,7 @@ public class CloudinaryService implements ImageStorageService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.DELETE,
-			AppConstant.Service.CLOUDINARY,
-			null,
+			CLOUDINARY,
 			String.format("Deleting file from Cloudinary with public ID: %s", fileId)
 		);
 
@@ -137,8 +132,7 @@ public class CloudinaryService implements ImageStorageService {
 			LoggingUtil.logOperation(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.Service.CLOUDINARY,
-				null,
+				CLOUDINARY,
 				String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.Storage.CLOUDINARY_IMAGE, fileId)
 			);
 		} catch ( IOException e ) {
@@ -146,8 +140,7 @@ public class CloudinaryService implements ImageStorageService {
 			LoggingUtil.logError(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.Service.CLOUDINARY,
-				null,
+				CLOUDINARY,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "delete file", fileId, e.getMessage()),
 				e
 			);

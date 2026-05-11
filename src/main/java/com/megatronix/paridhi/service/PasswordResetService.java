@@ -70,7 +70,7 @@ public class PasswordResetService {
 
 		// step-2: guard — prevent user enumeration by returning generic success even if user not found
 		if ( userOpt.isEmpty() ) {
-			LoggingUtil.logSecurity(log, PASSWORD_RESET_REQUEST, null, FAILED, format(NOT_FOUND_LOG, USER, EMAIL,
+			LoggingUtil.logSecurity(log, PASSWORD_RESET_REQUEST, FAILED, format(NOT_FOUND_LOG, USER, EMAIL,
 				email));
 			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.PASSWORD_RESET));
 		}
@@ -118,7 +118,7 @@ public class PasswordResetService {
 		// step-1: fetch the USER from the DB by email
 		User user = userRepository.findUserByEmail(email)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, AppConstant.Service.PASSWORD_RESET, null,
+				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, AppConstant.Service.PASSWORD_RESET,
 					format(NOT_FOUND_LOG, USER, EMAIL, email), null);
 				return new InvalidResetTokenException(PASSWORD_RESET_TOKEN_INVALID_OR_EXPIRED);
 			});
@@ -126,7 +126,7 @@ public class PasswordResetService {
 		// step-2: fetch the most recent reset token for this USER
 		PasswordResetToken latestToken = passwordResetTokenRepository.findFirstByUserOrderByCreatedAtDesc(user)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, AppConstant.Service.PASSWORD_RESET, user,
+				LoggingUtil.logError(log, PASSWORD_RESET_CONFIRM, AppConstant.Service.PASSWORD_RESET,
 					format(PASSWORD_RESET_TOKEN_NOT_FOUND, email), null);
 				return new InvalidResetTokenException(PASSWORD_RESET_TOKEN_INVALID_OR_EXPIRED);
 			});
@@ -183,7 +183,7 @@ public class PasswordResetService {
 
 		// step-2: guard — reject if token not found or in invalid state (expired / used / locked)
 		if ( tokenOpt.isEmpty() ) {
-			LoggingUtil.logError(log, PASSWORD_RESET_VALIDATE, AppConstant.Service.PASSWORD_RESET, null, format(PASSWORD_RESET_TOKEN_NOT_FOUND, token), null);
+			LoggingUtil.logError(log, PASSWORD_RESET_VALIDATE, AppConstant.Service.PASSWORD_RESET, format(PASSWORD_RESET_TOKEN_NOT_FOUND, token), null);
 			throw new InvalidResetTokenException(PASSWORD_RESET_TOKEN_INVALID_OR_EXPIRED);
 		}
 

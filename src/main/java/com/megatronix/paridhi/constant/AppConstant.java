@@ -83,7 +83,6 @@ public final class AppConstant {
 
 		public static final String REQUEST_ID = "requestId";
 		public static final String CLIENT_IP = "clientIp";
-		public static final String RESOURCE_TYPE = "resourceType";
 		public static final String VISITOR_COOKIE = "Paridhi-Visitor-Id";
 		public static final String USER_AGENT = "User-Agent";
 		public static final String X_FORWARDED_FOR = "X-Forwarded-For";

@@ -70,7 +70,7 @@ public class EventComboService {
 		List< EventCombo > combos = eventComboRepository.findAll();
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+			logOperation(log, READ, COMBO, format(COMBOS_RETRIEVED, combos.size()));
 		}
 
 		// step-2: group by domain and return
@@ -87,7 +87,7 @@ public class EventComboService {
 		var combo = fetchEventComboById(eventComboId, null);
 
 		// step-2: audit log the successful retrieval
-		logOperation(log, READ, COMBO, null, format(COMBO_RETRIEVED, combo.getEventComboName(), eventComboId));
+		logOperation(log, READ, COMBO, format(COMBO_RETRIEVED, combo.getEventComboName(), eventComboId));
 
 		// step-3: map to public DTO and return
 		return EventComboPublicResponse.fromCombo(combo, getEventComboDate(combo), getEventComboVenue(combo));
@@ -103,7 +103,7 @@ public class EventComboService {
 		List< EventCombo > combos = eventComboRepository.findByDomain(domain);
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+			logOperation(log, READ, COMBO, format(COMBOS_RETRIEVED, combos.size()));
 		}
 
 		// step-2: map to public DTOs and return
@@ -122,7 +122,7 @@ public class EventComboService {
 		List< EventCombo > combos = eventComboRepository.findByIsEventComboRegistrationOpen(isOpen);
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, COMBO, null, format(COMBOS_RETRIEVED, combos.size()));
+			logOperation(log, READ, COMBO, format(COMBOS_RETRIEVED, combos.size()));
 		}
 
 		// step-2: group by domain and return

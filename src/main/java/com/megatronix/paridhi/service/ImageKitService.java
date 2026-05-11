@@ -16,9 +16,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import static com.megatronix.paridhi.constant.AppConstant.Service.IMAGEKIT;
+import static com.megatronix.paridhi.constant.MessageConstant.Operation.CREATE;
+
 @Service
 @Primary
 public class ImageKitService implements ImageStorageService {
+
 	private static final Logger log = LoggerFactory.getLogger(ImageKitService.class);
 	private final ImageKit imageKit;
 
@@ -35,30 +39,19 @@ public class ImageKitService implements ImageStorageService {
 		FileValidationUtil.validateImage(file);
 		String safeFileName = FileValidationUtil.sanitizeFileName(file.getOriginalFilename());
 		String targetFolder = baseFolder + folderName;
-//		log.info("Uploading file [{}] to ImageKit folder [{}]", safeFileName, targetFolder);
 
-		// log the upload operation
-		LoggingUtil.logOperation(
-			log,
-			MessageConstant.Operation.CREATE,
-			AppConstant.Service.IMAGEKIT,
-			null,
-			String.format("Uploading file: %s (%d bytes) to folder: %s", safeFileName, file.getSize(), targetFolder)
-		);
+		LoggingUtil.logOperation(log, CREATE, IMAGEKIT, String.format("Uploading file: %s (%d bytes) to folder: %s", safeFileName, file.getSize(), targetFolder));
 
 		try {
 			// 2. upload file to ImageKit
 			FileCreateRequest request = new FileCreateRequest(file.getBytes(), file.getOriginalFilename());
 			request.setFolder(targetFolder);
 			Result result = imageKit.upload(request);
-//			log.info("Successfully uploaded to ImageKit. FileId: {}", result.getFileId());
 
-			// log the successful upload
 			LoggingUtil.logOperation(
 				log,
-				MessageConstant.Operation.CREATE,
-				AppConstant.Service.IMAGEKIT,
-				null,
+				CREATE,
+				IMAGEKIT,
 				String.format(MessageConstant.SuccessTemplate.CREATED, AppConstant.Storage.IMAGEKIT_IMAGE, result.getFileId())
 			);
 
@@ -68,9 +61,8 @@ public class ImageKitService implements ImageStorageService {
 			// log the error
 			LoggingUtil.logError(
 				log,
-				MessageConstant.Operation.CREATE,
-				AppConstant.Service.IMAGEKIT,
-				null,
+				CREATE,
+				IMAGEKIT,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "upload file", safeFileName, e.getMessage()),
 				e
 			);
@@ -86,8 +78,7 @@ public class ImageKitService implements ImageStorageService {
 		LoggingUtil.logOperation(
 			log,
 			MessageConstant.Operation.DELETE,
-			AppConstant.Service.IMAGEKIT,
-			null,
+			IMAGEKIT,
 			String.format("Deleting file from ImageKit with FileID: %s", fileId)
 		);
 		try {
@@ -97,8 +88,7 @@ public class ImageKitService implements ImageStorageService {
 			LoggingUtil.logOperation(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.Service.IMAGEKIT,
-				null,
+				IMAGEKIT,
 				String.format(MessageConstant.SuccessTemplate.DELETED, AppConstant.Storage.IMAGEKIT_IMAGE, fileId)
 			);
 		} catch ( Exception e ) {
@@ -106,8 +96,7 @@ public class ImageKitService implements ImageStorageService {
 			LoggingUtil.logError(
 				log,
 				MessageConstant.Operation.DELETE,
-				AppConstant.Service.IMAGEKIT,
-				null,
+				IMAGEKIT,
 				String.format(MessageConstant.ErrorTemplate.OPERATION_FAILED, "delete file", fileId, e.getMessage()),
 				e
 			);

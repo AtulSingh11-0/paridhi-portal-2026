@@ -35,18 +35,23 @@ public final class LoggingUtil {
 	 * Log an operation with full context
 	 */
 	public static void logOperation ( Logger logger, String operation, String resourceType, User user, String details ) {
-		String userId = user == null ? AppConstant.Security.ANONYMOUS : user.getUserId().toString();
-		String userEmail = user == null ? AppConstant.Security.ANONYMOUS : user.getEmail();
+		User resolvedUser = resolveUser(user);
+		String userEmail = resolvedUser == null ? AppConstant.Security.ANONYMOUS : resolvedUser.getEmail();
+		String userIdInfo = ( resolvedUser != null && resolvedUser.getUserId() != null ) ? " (" + resolvedUser.getUserId() + ")" : "";
 
 		logger.info(
-			"Operation: {} | Resource: {} | User: {} ({}) | Details: {} | RequestID: {}",
+			"Operation: {} | Resource: {} | User: {}{} | Details: {} | RequestID: {}",
 			operation,
 			resourceType,
 			userEmail,
-			userId,
+			userIdInfo,
 			details,
 			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : AppConstant.Security.ANONYMOUS
 		);
+	}
+
+	public static void logOperation ( Logger logger, String operation, String resourceType, String details ) {
+		logOperation(logger, operation, resourceType, null, details);
 	}
 
 	/**
@@ -67,15 +72,16 @@ public final class LoggingUtil {
 	 * Log an error with full context
 	 */
 	public static void logError ( Logger logger, String operation, String resourceType, User user, String details, Throwable error ) {
-		String userId = user == null ? AppConstant.Security.ANONYMOUS : user.getUserId().toString();
-		String userEmail = user == null ? AppConstant.Security.ANONYMOUS : user.getEmail();
+		User resolvedUser = resolveUser(user);
+		String userEmail = resolvedUser == null ? AppConstant.Security.ANONYMOUS : resolvedUser.getEmail();
+		String userIdInfo = ( resolvedUser != null && resolvedUser.getUserId() != null ) ? " (" + resolvedUser.getUserId() + ")" : "";
 
 		logger.error(
-			"ERROR | Operation: {} | Resource: {} | User: {} ({}) | Details: {} | ClientIP: {} | RequestID: {}",
+			"ERROR | Operation: {} | Resource: {} | User: {}{} | Details: {} | ClientIP: {} | RequestID: {}",
 			operation,
 			resourceType,
 			userEmail,
-			userId,
+			userIdInfo,
 			details,
 			MDC.get(AppConstant.Security.CLIENT_IP) != null ? MDC.get(AppConstant.Security.CLIENT_IP) : AppConstant.Security.ANONYMOUS,
 			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : AppConstant.Security.ANONYMOUS,
@@ -83,23 +89,52 @@ public final class LoggingUtil {
 		);
 	}
 
+	public static void logError ( Logger logger, String operation, String resourceType, String details, Throwable error ) {
+		logError(logger, operation, resourceType, null, details, error);
+	}
+
 	/**
 	 * Log security events with full context
 	 */
 	public static void logSecurity ( Logger logger, String operation, User user, String status, String details ) {
-		String userId = user == null ? AppConstant.Security.ANONYMOUS : user.getUserId().toString();
-		String userEmail = user == null ? AppConstant.Security.ANONYMOUS : user.getEmail();
+		User resolvedUser = resolveUser(user);
+		String userEmail = resolvedUser == null ? AppConstant.Security.ANONYMOUS : resolvedUser.getEmail();
+		String userIdInfo = ( resolvedUser != null && resolvedUser.getUserId() != null ) ? " (" + resolvedUser.getUserId() + ")" : "";
 
 		logger.info(
-			"SECURITY | Operation: {} | User: {} ({}) | Status: {} | Details: {} | IP: {} | RequestID: {}",
+			"SECURITY | Operation: {} | User: {}{} | Status: {} | Details: {} | IP: {} | RequestID: {}",
 			operation,
 			userEmail,
-			userId,
+			userIdInfo,
 			status,
 			details,
 			MDC.get(AppConstant.Security.CLIENT_IP) != null ? MDC.get(AppConstant.Security.CLIENT_IP) : AppConstant.Security.ANONYMOUS,
 			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : AppConstant.Security.ANONYMOUS
 		);
+	}
+
+	public static void logSecurity ( Logger logger, String operation, String status, String details ) {
+		logSecurity(logger, operation, null, status, details);
+	}
+
+	private static User resolveUser ( User user ) {
+		if ( user != null ) {
+			return user;
+		}
+
+		var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+		if ( authentication == null || ! authentication.isAuthenticated() ) {
+			return null;
+		}
+
+		Object principal = authentication.getPrincipal();
+		if ( principal instanceof User ) {
+			return (User) principal;
+		} else if ( principal instanceof String email ) {
+			return User.builder().email(email).build();
+		}
+
+		return null;
 	}
 
 	/**

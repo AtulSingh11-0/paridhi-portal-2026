@@ -1,5 +1,6 @@
 package com.megatronix.paridhi.service;
 
+import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.constant.MessageConstant;
 import com.megatronix.paridhi.dto.request.OtpRequest;
 import com.megatronix.paridhi.dto.request.OtpVerificationRequest;
@@ -32,7 +33,6 @@ import static com.megatronix.paridhi.constant.AppConstant.Common.SUCCESS;
 import static com.megatronix.paridhi.constant.AppConstant.Resource.EMAIL;
 import static com.megatronix.paridhi.constant.AppConstant.Resource.USER;
 import static com.megatronix.paridhi.constant.AppConstant.Security.SYSTEM;
-import static com.megatronix.paridhi.constant.AppConstant.Service.OTP;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.*;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.*;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.*;
@@ -78,9 +78,8 @@ public class OtpService {
 		// step-1: fetch the USER from the DB by email
 		Optional< User > userOpt = userRepository.findUserByEmail(email);
 
-		// step-2: guard - reject if no USER found with the provided email
 		if ( userOpt.isEmpty() ) {
-			LoggingUtil.logError(log, OTP_VERIFY, OTP, null, format(NOT_FOUND_LOG, USER, EMAIL, email), null);
+			LoggingUtil.logError(log, OTP_VERIFY, AppConstant.Service.OTP, format(NOT_FOUND_LOG, USER, EMAIL, email), null);
 			throw new InvalidEmailException();
 		}
 
@@ -95,7 +94,8 @@ public class OtpService {
 		// step-4: fetch the most recent OTP token for this USER
 		OtpToken latestOtp = otpTokenRepository.findFirstByUserOrderByCreatedAtDesc(user)
 			.orElseThrow(() -> {
-				LoggingUtil.logError(log, OTP_VERIFY, OTP, user, format(OTP_NOT_FOUND, email), null);
+				LoggingUtil.logError(log, OTP_VERIFY, AppConstant.Service.OTP, user, format(OTP_NOT_FOUND, email),
+					null);
 				return new InvalidOtpException();
 			});
 
@@ -114,7 +114,7 @@ public class OtpService {
 			}
 
 			LoggingUtil.logSecurity(log, OTP_VERIFY, user, FAILED, format(OTP_INVALID, email));
-			throw new InvalidOtpException(format(TOKEN_INVALID_USER_MESSAGE, OTP, OtpToken.MAX_ATTEMPTS - latestOtp.getAttempts()));
+			throw new InvalidOtpException(format(TOKEN_INVALID_USER_MESSAGE, AppConstant.Resource.OTP, OtpToken.MAX_ATTEMPTS - latestOtp.getAttempts()));
 		}
 
 		try {
@@ -145,10 +145,9 @@ public class OtpService {
 		internalGenerateAndSendOtp(request);
 
 		// step-2: log the resend audit milestone
-		LoggingUtil.logOperation(log, MessageConstant.Operation.OTP_RESEND, OTP, (User) null,
-			format(OTP_RESENT_LOG, request.email()));
+		LoggingUtil.logOperation(log, MessageConstant.Operation.OTP_RESEND, AppConstant.Resource.OTP, format(OTP_RESENT_LOG, request.email()));
 
-		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
+		return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.OTP));
 	}
 
 	@Transactional
@@ -160,7 +159,7 @@ public class OtpService {
 
 		// delete all OTP tokens past their expiry
 		otpTokenRepository.deleteAllExpiredTokens(Instant.now());
-		LoggingUtil.logSystemOperation(log, OTP_CLEANUP, OTP, SYSTEM, EXPIRED_OTPS_PURGED);
+		LoggingUtil.logSystemOperation(log, OTP_CLEANUP, AppConstant.Resource.OTP, SYSTEM, EXPIRED_OTPS_PURGED);
 	}
 
 	/*
@@ -177,10 +176,9 @@ public class OtpService {
 		// step-1: fetch the USER from the DB by email
 		Optional< User > userOpt = userRepository.findUserByEmail(email);
 
-		// step-2: guard - reject if no USER found with the provided email
 		if ( userOpt.isEmpty() ) {
-			LoggingUtil.logSecurity(log, OTP_GENERATE, null, FAILED, format(NOT_FOUND_LOG, USER, EMAIL, email));
-			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
+			LoggingUtil.logSecurity(log, OTP_GENERATE, FAILED, format(NOT_FOUND_LOG, USER, EMAIL, email));
+			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.OTP));
 		}
 
 		User user = userOpt.get();
@@ -208,9 +206,9 @@ public class OtpService {
 
 			// step-7: dispatch the OTP via email
 			emailService.sendOtp(user.getEmail(), user.getName(), savedOtp.getOtp(), user);
-			LoggingUtil.logOperation(log, OTP_GENERATE, OTP, user, format(OTP_SENT_LOG, email));
+			LoggingUtil.logOperation(log, OTP_GENERATE, AppConstant.Service.OTP, user, format(OTP_SENT_LOG, email));
 
-			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, OTP));
+			return MessageResponse.of(format(GENERIC_SUCCESS_MSG, AppConstant.Resource.OTP));
 		} finally {
 			SecurityContextUtil.clear();
 		}

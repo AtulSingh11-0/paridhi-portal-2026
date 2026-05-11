@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import static com.megatronix.paridhi.constant.AppConstant.Resource.EVENT;
-import static com.megatronix.paridhi.constant.AppConstant.Resource.TEAM;
+import static com.megatronix.paridhi.constant.AppConstant.Service.CRD;
 import static com.megatronix.paridhi.constant.MessageConstant.ErrorTemplate.NOT_FOUND;
 import static com.megatronix.paridhi.constant.MessageConstant.LogMessage.EVENT_NOT_FOUND;
 import static com.megatronix.paridhi.constant.MessageConstant.Operation.READ;
@@ -51,7 +51,8 @@ public class CRDService {
 		AccessControlUtil.requireAdminAccess(log, user, READ, "Prelims Data");
 
 		// step-2: audit log the start of the operation
-		logOperation(log, READ, TEAM, user, format("Fetching teams for prelims of event ID: %d", eventId));
+		logOperation(log, READ, CRD, user, format("Fetching teams for prelims of event ID: %d",
+			eventId));
 
 		// step-3: fetch the event — throws EventNotFoundException if missing
 		var event = eventRepository.findById(eventId)
@@ -76,7 +77,7 @@ public class CRDService {
 			.toList();
 
 		// step-6: audit log the successful completion
-		logOperation(log, READ, TEAM, user,
+		logOperation(log, READ, CRD, user,
 			format("Fetched %d teams for Prelims of Event: %s (ID: %d)", prelimsTeams.size(), event.getEventName(), eventId));
 
 		return prelimsTeams.stream()
@@ -90,7 +91,7 @@ public class CRDService {
 		AccessControlUtil.requireAdminAccess(log, user, READ, "Finals Data");
 
 		// step-2: audit log the start of the operation
-		logOperation(log, READ, TEAM, user, format("Fetching teams for finals of event ID: %d", eventId));
+		logOperation(log, READ, CRD, user, format("Fetching teams for finals of event ID: %d", eventId));
 
 		// step-3: fetch the event
 		var event = eventRepository.findById(eventId)
@@ -109,7 +110,7 @@ public class CRDService {
 			.toList();
 
 		// step-6: audit log the successful completion
-		logOperation(log, READ, TEAM, user,
+		logOperation(log, READ, CRD, user,
 			format("Fetched %d teams for Finals of Event: %s (ID: %d)", finalsTeams.size(), event.getEventName(), eventId));
 
 		return finalsTeams.stream()

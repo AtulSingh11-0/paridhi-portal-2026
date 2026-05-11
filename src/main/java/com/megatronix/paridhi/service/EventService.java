@@ -111,7 +111,7 @@ public class EventService {
 		List< Event > events = eventRepository.findAll();
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, EVENT, null, format(EVENTS_RETRIEVED, events.size()));
+			logOperation(log, READ, EVENT, format(EVENTS_RETRIEVED, events.size()));
 		}
 
 		// step-2: group events by domain and return
@@ -128,7 +128,7 @@ public class EventService {
 		List< Event > events = eventRepository.findByDomain(domain);
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, EVENT, null, format(EVENTS_RETRIEVED, events.size()));
+			logOperation(log, READ, EVENT, format(EVENTS_RETRIEVED, events.size()));
 		}
 
 		// step-2: map to public DTOs and return
@@ -164,7 +164,7 @@ public class EventService {
 		List< Event > events = eventRepository.findByEventType(eventType);
 
 		if ( log.isInfoEnabled() ) {
-			logOperation(log, READ, EVENT, null, format(EVENTS_RETRIEVED, events.size()));
+			logOperation(log, READ, EVENT, format(EVENTS_RETRIEVED, events.size()));
 		}
 
 		// step-2: group and return
@@ -181,7 +181,7 @@ public class EventService {
 		var event = fetchEventById(eventId, null);
 
 		// step-2: audit log the successful retrieval
-		logOperation(log, READ, EVENT, null, format(EVENT_RETRIEVED, event.getEventName(), eventId));
+		logOperation(log, READ, EVENT, format(EVENT_RETRIEVED, event.getEventName(), eventId));
 
 		// step-3: map and return the public DTO
 		return EventPublicResponse.fromEvent(event);
