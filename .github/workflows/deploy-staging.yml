@@ -33,17 +33,25 @@ jobs:
                     context: .
                     push: true
                     tags: ${{ secrets.DOCKER_USERNAME }}/paridhi-portal:staging
+                    cache-from: type=gha
+                    cache-to: type=gha,mode=max
 
-            # 4. Send ONLY the compose/env files to the server
-            -   name: Copy docker-compose and env file to VPS
+            # 4. Send deployment files to the server
+            -   name: Copy deployment files
                 uses: appleboy/scp-action@v0.1.7
                 with:
                     host: ${{ secrets.VPS_IP }}
                     username: ${{ secrets.VPS_USERNAME }}
                     key: ${{ secrets.VPS_SSH_KEY }}
-                    source: "docker-compose.staging.yml,.env.docker,Caddyfile,prometheus-staging.yml,grafana/"
-                    target: "/root/paridhi-portal-staging"
+                    source: |
+                        docker-compose.staging.yml
+                        Caddyfile
+                        prometheus-staging.yml
+                        loki-config.yaml
+                        grafana/
+                    target: "/home/${{ secrets.VPS_USERNAME }}/paridhi-portal-staging"
 
+            # 5. Restart Docker on VPS
             -   name: Restart Docker on VPS
                 uses: appleboy/ssh-action@v1.0.3
                 with:
@@ -51,7 +59,20 @@ jobs:
                     username: ${{ secrets.VPS_USERNAME }}
                     key: ${{ secrets.VPS_SSH_KEY }}
                     script: |
-                        cd /root/paridhi-portal-staging
-                        docker compose -f docker-compose.staging.yml --env-file .env.docker down --rmi local
-                        docker compose -f docker-compose.staging.yml --env-file .env.docker pull app
-                        docker compose -f docker-compose.staging.yml --env-file .env.docker up -d
+                        set -e
+                        cd /home/${{ secrets.VPS_USERNAME }}/paridhi-portal-staging
+                        docker compose -f docker-compose.staging.yml --env-file .env.docker pull
+                        docker compose -f docker-compose.staging.yml --env-file .env.docker up -d --remove-orphans
+                        docker image prune -f
+
+            # 6. Verify Deployment
+            -   name: Verify Deployment
+                uses: appleboy/ssh-action@v1.0.3
+                with:
+                    host: ${{ secrets.VPS_IP }}
+                    username: ${{ secrets.VPS_USERNAME }}
+                    key: ${{ secrets.VPS_SSH_KEY }}
+                    script: |
+                        sleep 15
+                        curl -f http://localhost:8080/actuator/health || exit 1
+                        docker ps

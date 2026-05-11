@@ -61,6 +61,12 @@ services:
         restart: unless-stopped
         ports:
             - "9090:9090" # Expose to host so you can view Prometheus UI locally
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+            - '--web.console.templates=/usr/share/prometheus/consoles'
+            - '--storage.tsdb.retention.time=7d'
         volumes:
             - ./prometheus-dev.yml:/etc/prometheus/prometheus.yml
             - prometheus_data:/prometheus
@@ -75,6 +81,7 @@ services:
             - "3100:3100" # Expose to host so IntelliJ app can push logs
         command: -config.file=/etc/loki/local-config.yaml
         volumes:
+            - ./loki-config.yaml:/etc/loki/local-config.yaml
             - loki_data:/loki
         networks:
             - paridhi-network
