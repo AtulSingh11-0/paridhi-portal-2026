@@ -7,7 +7,7 @@ services:
             MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
             MYSQL_DATABASE: paridhi_dev_db
         ports:
-            - "127.0.0.1:3307:3306"  # Bind to localhost for security
+            - "127.0.0.1:3306:3306"  # Bind to localhost for security
         volumes:
             - mysql-data:/var/lib/mysql
         networks:
