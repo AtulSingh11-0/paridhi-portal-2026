@@ -7,7 +7,7 @@ services:
             MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
             MYSQL_DATABASE: paridhi_dev_db
         ports:
-            - "127.0.0.1:3306:3306"  # Bind to localhost for security
+            - "127.0.0.1:3307:3306"  # Bind to localhost for security
         volumes:
             - mysql-data:/var/lib/mysql
         networks:
@@ -50,7 +50,7 @@ services:
             redis:
                 condition: service_healthy
             loki:
-                condition: service_healthy
+                condition: service_started
         ports:
             - "8080"
         env_file:
@@ -111,11 +111,13 @@ services:
             - paridhi-network
         security_opt:
             - no-new-privileges:true
+        # Loki might not have wget/curl, so we use a simpler start period
         healthcheck:
-            test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
-            interval: 5s
+            test: ["CMD-SHELL", "grep -q 'ready' <(wget -qO- http://localhost:3100/ready) || exit 1"]
+            interval: 10s
             timeout: 5s
-            retries: 10
+            retries: 5
+            start_period: 10s
 
     grafana:
         image: grafana/grafana:latest
