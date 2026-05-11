@@ -14,7 +14,7 @@ services:
             - paridhi-network
         # Prevents Spring Boot from crashing by telling Docker when the DB is actually ready
         healthcheck:
-            test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+            test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$DATABASE_PASSWORD || exit 1"]
             interval: 10s
             timeout: 5s
             retries: 5
@@ -32,6 +32,11 @@ services:
             - redis-data:/data
         networks:
             - paridhi-network
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
         security_opt:
             - no-new-privileges:true
 
@@ -43,9 +48,9 @@ services:
             mysql:
                 condition: service_healthy
             redis:
-                condition: service_started
+                condition: service_healthy
             loki:
-                condition: service_started
+                condition: service_healthy
         ports:
             - "8080"
         env_file:
@@ -66,10 +71,15 @@ services:
                     memory: 1G
         security_opt:
             - no-new-privileges:true
+        healthcheck:
+            test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
         read_only: true
         tmpfs:
-            - /tmp/spring:size=256M
-            - /var/log/spring:size=128M
+            - /tmp/spring:size=256M,mode=1777
+            - /var/log/spring:size=128M,mode=1777
 
     prometheus:
         image: prom/prometheus:latest
@@ -101,6 +111,11 @@ services:
             - paridhi-network
         security_opt:
             - no-new-privileges:true
+        healthcheck:
+            test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3100/ready"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
     grafana:
         image: grafana/grafana:latest
@@ -109,7 +124,7 @@ services:
         environment:
             - GF_SECURITY_ADMIN_USER=${SUPER_ADMIN_EMAIL}
             - GF_SECURITY_ADMIN_PASSWORD=${SUPER_ADMIN_PASSWORD}
-            - GF_SERVER_ROOT_URL=${DOMAIN_URL}/grafana/
+            - GF_SERVER_ROOT_URL=${DOMAIN_URL}/grafana
             - GF_SERVER_SERVE_FROM_SUB_PATH=true
         volumes:
             - grafana_data:/var/lib/grafana
