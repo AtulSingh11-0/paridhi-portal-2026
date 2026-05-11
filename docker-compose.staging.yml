@@ -67,6 +67,9 @@ services:
         security_opt:
             - no-new-privileges:true
         read_only: true
+        tmpfs:
+            - /tmp/spring:size=256M
+            - /var/log/spring:size=128M
 
     prometheus:
         image: prom/prometheus:latest
