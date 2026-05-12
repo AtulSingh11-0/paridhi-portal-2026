@@ -151,17 +151,16 @@ public final class LoggingUtil {
 	 * Extract client IP address with proxy handling
 	 */
 	public static String getClientIp(HttpServletRequest request) {
-		// Cloudflare Pseudo IPv4 (if enabled in Cloudflare dashboard)
-		// This provides an IPv4 mapping for IPv6 clients
-		String ip = request.getHeader("Cf-Pseudo-IPv4");
-
-		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
-			// Cloudflare explicitly sends the true client IP in this header
-			ip = request.getHeader("CF-Connecting-IP");
-		}
+		// Cloudflare explicitly sends the true client IP in this header (IPv4 or IPv6)
+		// This is the most reliable header for the REAL visitor IP.
+		String ip = request.getHeader("CF-Connecting-IP");
 
 		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("X-Forwarded-For");
+		}
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
+			// Fallback to Pseudo IPv4 if enabled in Cloudflare dashboard
+			ip = request.getHeader("Cf-Pseudo-IPv4");
 		}
 		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("Proxy-Client-IP");
