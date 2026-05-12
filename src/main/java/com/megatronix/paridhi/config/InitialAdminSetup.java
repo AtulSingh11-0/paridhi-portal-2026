@@ -54,7 +54,6 @@ public class InitialAdminSetup implements ApplicationRunner {
 			userRepository.save(superAdmin);
 
 			log.info("Default super admin created with email:{} ", defaultSuperAdminEmail);
-			log.info("Default super admin created with password:{} ", defaultSuperAdminPassword);
 		} else {
 			log.info("Super admin already exists");
 		}

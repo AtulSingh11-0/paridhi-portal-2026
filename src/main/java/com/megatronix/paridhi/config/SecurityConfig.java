@@ -1,6 +1,7 @@
 package com.megatronix.paridhi.config;
 
 import com.megatronix.paridhi.filter.EndpointVisibilityFilter;
+import com.megatronix.paridhi.filter.LoadTestingDetectionFilter;
 import com.megatronix.paridhi.filter.RateLimitingFilter;
 import com.megatronix.paridhi.security.JwtAuthenticationEntryPoint;
 import com.megatronix.paridhi.security.JwtAuthenticationFilter;
@@ -32,19 +33,22 @@ public class SecurityConfig {
 	private final UserDetailsServiceImpl userDetailsService;
 	private final JwtAuthenticationEntryPoint jwtAuthEntryPoint;
 	private final EndpointVisibilityFilter endpointVisibilityFilter;
+	private final LoadTestingDetectionFilter loadTestingDetectionFilter;
 
 	public SecurityConfig (
 		RateLimitingFilter rateLimitingFilter,
 		JwtAuthenticationFilter jwtAuthFilter,
 		UserDetailsServiceImpl userDetailsService,
 		JwtAuthenticationEntryPoint jwtAuthEntryPoint,
-		EndpointVisibilityFilter endpointVisibilityFilter
+		EndpointVisibilityFilter endpointVisibilityFilter,
+		LoadTestingDetectionFilter loadTestingDetectionFilter
 	) {
 		this.jwtAuthFilter = jwtAuthFilter;
 		this.jwtAuthEntryPoint = jwtAuthEntryPoint;
 		this.rateLimitingFilter = rateLimitingFilter;
 		this.userDetailsService = userDetailsService;
 		this.endpointVisibilityFilter = endpointVisibilityFilter;
+		this.loadTestingDetectionFilter = loadTestingDetectionFilter;
 	}
 
 	private static final String[] WHITELISTED_URLS = {
@@ -74,7 +78,8 @@ public class SecurityConfig {
 			.authenticationProvider(authenticationProvider())
 			.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
 			.addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)
-			.addFilterBefore(endpointVisibilityFilter, RateLimitingFilter.class);
+			.addFilterBefore(endpointVisibilityFilter, RateLimitingFilter.class)
+			.addFilterBefore(loadTestingDetectionFilter, EndpointVisibilityFilter.class);
 
 		return http.build();
 	}

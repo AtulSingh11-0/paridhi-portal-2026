@@ -1,13 +1,12 @@
 {
     email official.megatronix@gmail.com
-
+    admin off
     servers {
-        trusted_proxies static private_ranges
+        trusted_proxies static private_ranges 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
     }
 }
 
-api-staging.paridhi2k26.in {
-
+{$DOMAIN_HOST} {
     # -----------------------------
     # ENABLE COMPRESSION
     # -----------------------------
@@ -16,7 +15,7 @@ api-staging.paridhi2k26.in {
     # -----------------------------------
     # BLOCK INVALID HOST HEADERS
     # -----------------------------------
-    @invalid_host not host api-staging.paridhi2k26.in
+    @invalid_host not host {$DOMAIN_HOST}
     respond @invalid_host 403
 
     # -----------------------------
@@ -29,7 +28,6 @@ api-staging.paridhi2k26.in {
     # SECURITY HEADERS
     # -----------------------------
     header {
-
         # Hide server info
         -Server
 
@@ -56,14 +54,7 @@ api-staging.paridhi2k26.in {
     # OPTIONAL: GRAFANA PROTECTION
     # -----------------------------
     @grafana path /grafana*
-
     handle @grafana {
-
-        # Optional Basic Auth
-        basicauth {
-            admin $2a$14$BGU9EeaMrm0bW3roQT9Gn.v0yCyoAOJ4.cXO0cDNAO6Y/UzeBAqGW
-        }
-
         reverse_proxy paridhi-grafana:3000
     }
 
@@ -71,7 +62,7 @@ api-staging.paridhi2k26.in {
     # SPRING BOOT API
     # -----------------------------
     handle {
-        reverse_proxy paridhi-portal:8080
+        reverse_proxy app:{$SERVER_PORT:8080}
     }
 
     # -----------------------------

@@ -1,0 +1,13 @@
+global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+
+scrape_configs:
+    -   job_name: 'paridhi-prod-spring-boot'
+        metrics_path: '/actuator/prometheus'
+        # Using DNS service discovery to automatically find and scrape all 3 backend replicas
+        dns_sd_configs:
+            - names:
+                - 'app'
+              type: 'A'
+              port: 8081

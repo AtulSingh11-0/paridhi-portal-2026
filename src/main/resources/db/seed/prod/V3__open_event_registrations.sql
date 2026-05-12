@@ -1,0 +1,2 @@
+-- Placeholder for production data insertion
+-- You can set event registration status here

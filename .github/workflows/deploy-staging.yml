@@ -40,7 +40,7 @@ jobs:
                     host: ${{ secrets.VPS_IP }}
                     username: ${{ secrets.VPS_USERNAME }}
                     key: ${{ secrets.VPS_SSH_KEY }}
-                    source: "docker-compose.staging.yml,Caddyfile,prometheus-staging.yml,loki-config.yaml,grafana/"
+                    source: "docker-compose.staging.yml,Caddyfile.staging,prometheus-staging.yml,loki-config.yaml,grafana/"
                     target: "/home/${{ secrets.VPS_USERNAME }}/paridhi-portal-staging"
 
             # 6. Restart Docker on VPS
