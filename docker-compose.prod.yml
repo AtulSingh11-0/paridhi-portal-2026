@@ -8,7 +8,7 @@ services:
             MYSQL_DATABASE: paridhi_prod_db
             MYSQL_ROOT_HOST: "%"
         ports:
-            - "127.0.0.1:3307:3306"  # Bind to localhost for security
+            - "127.0.0.1:3308:3306"  # Bind to localhost for security
         volumes:
             - mysql-data:/var/lib/mysql
         networks:
