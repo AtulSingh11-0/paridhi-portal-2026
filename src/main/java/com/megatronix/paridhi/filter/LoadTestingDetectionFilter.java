@@ -24,36 +24,34 @@ import jakarta.servlet.http.HttpServletResponse;
 @Order(Ordered.HIGHEST_PRECEDENCE + 1) // Run right after logging filter
 public class LoadTestingDetectionFilter implements Filter {
     private static final Logger log = LoggerFactory.getLogger(LoadTestingDetectionFilter.class);
-    
+
     private static final List<String> BLOCKED_USER_AGENTS = Arrays.asList(
-        "jmeter", "loadrunner", "blazemeter", "gatling", "locust",
-        "apachebench", "vegeta", "wrk", "siege", "apache-http",
-        "python-loadtester", "loadtester", "stresstest", "stress-test",
-        "load-test", "performance-test", "benchmark", "artillery"
-    );
-    
+            "jmeter", "loadrunner", "blazemeter", "gatling", "locust",
+            "apachebench", "vegeta", "wrk", "siege", "apache-http",
+            "python-loadtester", "loadtester", "stresstest", "stress-test",
+            "load-test", "performance-test", "benchmark", "artillery");
+
     // Regex to detect patterns like "X workers" where X is a large number
     private static final Pattern WORKER_PATTERN = Pattern.compile("\\(\\d{4,}\\s+workers\\)");
-    
+
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        
+
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-        
+
         String userAgent = httpRequest.getHeader("User-Agent");
         String clientIp = getClientIP(httpRequest);
-        
+
         if (userAgent != null) {
             // Check for blocked user agents
-            if (BLOCKED_USER_AGENTS.stream().anyMatch(agent -> 
-                    userAgent.toLowerCase().contains(agent.toLowerCase()))) {
+            if (BLOCKED_USER_AGENTS.stream().anyMatch(agent -> userAgent.toLowerCase().contains(agent.toLowerCase()))) {
                 log.warn("Blocked load testing tool: {} from IP: {}", userAgent, clientIp);
                 blockRequest(httpResponse, "Load testing tools are not allowed");
                 return;
             }
-            
+
             // Check for suspicious worker count in user agent
             if (WORKER_PATTERN.matcher(userAgent).find()) {
                 log.warn("Blocked high-worker load testing: {} from IP: {}", userAgent, clientIp);
@@ -61,21 +59,16 @@ public class LoadTestingDetectionFilter implements Filter {
                 return;
             }
         }
-        
+
         chain.doFilter(request, response);
     }
-    
+
     private void blockRequest(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.getWriter().write(message);
     }
-    
+
     private String getClientIP(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            // Get the first IP in X-Forwarded-For as it's the original client
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+        return com.megatronix.paridhi.util.LoggingUtil.getClientIp(request);
     }
 }

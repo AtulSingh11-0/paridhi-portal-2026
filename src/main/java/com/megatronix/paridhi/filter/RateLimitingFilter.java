@@ -148,10 +148,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
 	private String resolveNetworkIdentity ( HttpServletRequest request, HttpServletResponse response ) {
 		// layer-3: fallback to (IP address + user-agent) + injecting the cookie for future tracking
-		String ipAddress = request.getHeader(X_FORWARDED_FOR);
-		if ( ipAddress == null || ipAddress.isEmpty() ) {
-			ipAddress = request.getRemoteAddr();
-		}
+		String ipAddress = com.megatronix.paridhi.util.LoggingUtil.getClientIp(request);
 		String userAgent = request.getHeader(USER_AGENT);
 		if ( userAgent == null ) userAgent = UNKNOWN;
 
@@ -162,7 +159,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 			.path("/")
 			.maxAge(30L * 24 * 60 * 60) // 30 days expiration
 			.secure(true)
-			.sameSite("Lax")
+			.sameSite("None")
 			.build();
 
 		response.addHeader(HttpHeaders.SET_COOKIE, newVisitorCookie.toString());

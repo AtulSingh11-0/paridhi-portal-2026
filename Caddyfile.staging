@@ -1,0 +1,75 @@
+{
+    email official.megatronix@gmail.com
+    admin off
+    servers {
+        trusted_proxies static private_ranges
+    }
+}
+
+{$DOMAIN_HOST} {
+    # -----------------------------
+    # ENABLE COMPRESSION
+    # -----------------------------
+    encode gzip zstd
+
+    # -----------------------------------
+    # BLOCK INVALID HOST HEADERS
+    # -----------------------------------
+    @invalid_host not host {$DOMAIN_HOST}
+    respond @invalid_host 403
+
+    # -----------------------------
+    # BLOCK HIDDEN FILES
+    # -----------------------------
+    @hidden path */.*
+    respond @hidden 403
+
+    # -----------------------------
+    # SECURITY HEADERS
+    # -----------------------------
+    header {
+        # Hide server info
+        -Server
+
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Clickjacking protection
+        X-Frame-Options "DENY"
+
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+
+        # Referrer control
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # HTTPS enforcement
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Disable powerful browser APIs
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+
+    # -----------------------------
+    # OPTIONAL: GRAFANA PROTECTION
+    # -----------------------------
+    @grafana path /grafana*
+    handle @grafana {
+        reverse_proxy paridhi-grafana:3000
+    }
+
+    # -----------------------------
+    # SPRING BOOT API
+    # -----------------------------
+    handle {
+        reverse_proxy app:{$SERVER_PORT:8080}
+    }
+
+    # -----------------------------
+    # ACCESS LOGS
+    # -----------------------------
+    log {
+        output file /var/log/caddy/api-access.log
+        format json
+    }
+}

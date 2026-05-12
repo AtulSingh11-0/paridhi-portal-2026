@@ -141,7 +141,12 @@ public final class LoggingUtil {
 	 * Extract client IP address with proxy handling
 	 */
 	public static String getClientIp ( HttpServletRequest request ) {
-		String ip = request.getHeader("X-Forwarded-For");
+		// Cloudflare explicitly sends the true client IP in this header
+		String ip = request.getHeader("CF-Connecting-IP");
+
+		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+			ip = request.getHeader("X-Forwarded-For");
+		}
 		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
 			ip = request.getHeader("Proxy-Client-IP");
 		}
@@ -157,6 +162,13 @@ public final class LoggingUtil {
 		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
 			ip = request.getRemoteAddr();
 		}
+
+		// X-Forwarded-For can contain multiple IPs separated by commas (e.g., "client, proxy1, proxy2")
+		// We only want the first IP, which is the original client
+		if ( ip != null && ip.contains(",") ) {
+			ip = ip.split(",")[0].trim();
+		}
+
 		return ip;
 	}
 }
