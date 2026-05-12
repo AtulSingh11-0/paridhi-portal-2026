@@ -9,13 +9,13 @@ import org.slf4j.MDC;
 import java.util.UUID;
 
 public final class LoggingUtil {
-	private LoggingUtil () {
+	private LoggingUtil() {
 	}
 
 	/**
 	 * Sets up request context in MDC for consistent logging
 	 */
-	public static void setupRequestContext ( HttpServletRequest request ) {
+	public static void setupRequestContext(HttpServletRequest request) {
 		String requestId = UUID.randomUUID().toString();
 		MDC.put(AppConstant.Security.REQUEST_ID, requestId);
 		MDC.put(AppConstant.Security.CLIENT_IP, getClientIp(request));
@@ -27,110 +27,120 @@ public final class LoggingUtil {
 	/**
 	 * Clear MDC context
 	 */
-	public static void clearRequestContext () {
+	public static void clearRequestContext() {
 		MDC.clear();
 	}
 
 	/**
 	 * Log an operation with full context
 	 */
-	public static void logOperation ( Logger logger, String operation, String resourceType, User user, String details ) {
+	public static void logOperation(Logger logger, String operation, String resourceType, User user, String details) {
 		User resolvedUser = resolveUser(user);
 		String userEmail = resolvedUser == null ? AppConstant.Security.ANONYMOUS : resolvedUser.getEmail();
-		String userIdInfo = ( resolvedUser != null && resolvedUser.getUserId() != null ) ? " (" + resolvedUser.getUserId() + ")" : "";
+		String userIdInfo = (resolvedUser != null && resolvedUser.getUserId() != null)
+				? " (" + resolvedUser.getUserId() + ")"
+				: "";
 
 		logger.info(
-			"Operation: {} | Resource: {} | User: {}{} | Details: {} | RequestID: {}",
-			operation,
-			resourceType,
-			userEmail,
-			userIdInfo,
-			details,
-			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : AppConstant.Security.ANONYMOUS
-		);
+				"Operation: {} | Resource: {} | User: {}{} | Details: {} | RequestID: {}",
+				operation,
+				resourceType,
+				userEmail,
+				userIdInfo,
+				details,
+				MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID)
+						: AppConstant.Security.ANONYMOUS);
 	}
 
-	public static void logOperation ( Logger logger, String operation, String resourceType, String details ) {
+	public static void logOperation(Logger logger, String operation, String resourceType, String details) {
 		logOperation(logger, operation, resourceType, null, details);
 	}
 
 	/**
 	 * Log an operation with a named actor (for scheduled tasks or system processes)
 	 */
-	public static void logSystemOperation ( Logger logger, String operation, String resourceType, String actor, String details ) {
+	public static void logSystemOperation(Logger logger, String operation, String resourceType, String actor,
+			String details) {
 		logger.info(
-			"Operation: {} | Resource: {} | User: {} | Details: {} | RequestID: {}",
-			operation,
-			resourceType,
-			actor,
-			details,
-			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : actor
-		);
+				"Operation: {} | Resource: {} | User: {} | Details: {} | RequestID: {}",
+				operation,
+				resourceType,
+				actor,
+				details,
+				MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : actor);
 	}
 
 	/**
 	 * Log an error with full context
 	 */
-	public static void logError ( Logger logger, String operation, String resourceType, User user, String details, Throwable error ) {
+	public static void logError(Logger logger, String operation, String resourceType, User user, String details,
+			Throwable error) {
 		User resolvedUser = resolveUser(user);
 		String userEmail = resolvedUser == null ? AppConstant.Security.ANONYMOUS : resolvedUser.getEmail();
-		String userIdInfo = ( resolvedUser != null && resolvedUser.getUserId() != null ) ? " (" + resolvedUser.getUserId() + ")" : "";
+		String userIdInfo = (resolvedUser != null && resolvedUser.getUserId() != null)
+				? " (" + resolvedUser.getUserId() + ")"
+				: "";
 
 		logger.error(
-			"ERROR | Operation: {} | Resource: {} | User: {}{} | Details: {} | ClientIP: {} | RequestID: {}",
-			operation,
-			resourceType,
-			userEmail,
-			userIdInfo,
-			details,
-			MDC.get(AppConstant.Security.CLIENT_IP) != null ? MDC.get(AppConstant.Security.CLIENT_IP) : AppConstant.Security.ANONYMOUS,
-			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : AppConstant.Security.ANONYMOUS,
-			error
-		);
+				"ERROR | Operation: {} | Resource: {} | User: {}{} | Details: {} | ClientIP: {} | RequestID: {}",
+				operation,
+				resourceType,
+				userEmail,
+				userIdInfo,
+				details,
+				MDC.get(AppConstant.Security.CLIENT_IP) != null ? MDC.get(AppConstant.Security.CLIENT_IP)
+						: AppConstant.Security.ANONYMOUS,
+				MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID)
+						: AppConstant.Security.ANONYMOUS,
+				error);
 	}
 
-	public static void logError ( Logger logger, String operation, String resourceType, String details, Throwable error ) {
+	public static void logError(Logger logger, String operation, String resourceType, String details, Throwable error) {
 		logError(logger, operation, resourceType, null, details, error);
 	}
 
 	/**
 	 * Log security events with full context
 	 */
-	public static void logSecurity ( Logger logger, String operation, User user, String status, String details ) {
+	public static void logSecurity(Logger logger, String operation, User user, String status, String details) {
 		User resolvedUser = resolveUser(user);
 		String userEmail = resolvedUser == null ? AppConstant.Security.ANONYMOUS : resolvedUser.getEmail();
-		String userIdInfo = ( resolvedUser != null && resolvedUser.getUserId() != null ) ? " (" + resolvedUser.getUserId() + ")" : "";
+		String userIdInfo = (resolvedUser != null && resolvedUser.getUserId() != null)
+				? " (" + resolvedUser.getUserId() + ")"
+				: "";
 
 		logger.info(
-			"SECURITY | Operation: {} | User: {}{} | Status: {} | Details: {} | IP: {} | RequestID: {}",
-			operation,
-			userEmail,
-			userIdInfo,
-			status,
-			details,
-			MDC.get(AppConstant.Security.CLIENT_IP) != null ? MDC.get(AppConstant.Security.CLIENT_IP) : AppConstant.Security.ANONYMOUS,
-			MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID) : AppConstant.Security.ANONYMOUS
-		);
+				"SECURITY | Operation: {} | User: {}{} | Status: {} | Details: {} | IP: {} | RequestID: {}",
+				operation,
+				userEmail,
+				userIdInfo,
+				status,
+				details,
+				MDC.get(AppConstant.Security.CLIENT_IP) != null ? MDC.get(AppConstant.Security.CLIENT_IP)
+						: AppConstant.Security.ANONYMOUS,
+				MDC.get(AppConstant.Security.REQUEST_ID) != null ? MDC.get(AppConstant.Security.REQUEST_ID)
+						: AppConstant.Security.ANONYMOUS);
 	}
 
-	public static void logSecurity ( Logger logger, String operation, String status, String details ) {
+	public static void logSecurity(Logger logger, String operation, String status, String details) {
 		logSecurity(logger, operation, null, status, details);
 	}
 
-	private static User resolveUser ( User user ) {
-		if ( user != null ) {
+	private static User resolveUser(User user) {
+		if (user != null) {
 			return user;
 		}
 
-		var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-		if ( authentication == null || ! authentication.isAuthenticated() ) {
+		var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext()
+				.getAuthentication();
+		if (authentication == null || !authentication.isAuthenticated()) {
 			return null;
 		}
 
 		Object principal = authentication.getPrincipal();
-		if ( principal instanceof User ) {
+		if (principal instanceof User) {
 			return (User) principal;
-		} else if ( principal instanceof String email ) {
+		} else if (principal instanceof String email) {
 			return User.builder().email(email).build();
 		}
 
@@ -140,32 +150,39 @@ public final class LoggingUtil {
 	/**
 	 * Extract client IP address with proxy handling
 	 */
-	public static String getClientIp ( HttpServletRequest request ) {
-		// Cloudflare explicitly sends the true client IP in this header
-		String ip = request.getHeader("CF-Connecting-IP");
+	public static String getClientIp(HttpServletRequest request) {
+		// Cloudflare Pseudo IPv4 (if enabled in Cloudflare dashboard)
+		// This provides an IPv4 mapping for IPv6 clients
+		String ip = request.getHeader("Cf-Pseudo-IPv4");
 
-		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
+			// Cloudflare explicitly sends the true client IP in this header
+			ip = request.getHeader("CF-Connecting-IP");
+		}
+
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("X-Forwarded-For");
 		}
-		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("Proxy-Client-IP");
 		}
-		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("WL-Proxy-Client-IP");
 		}
-		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("HTTP_CLIENT_IP");
 		}
-		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getHeader("HTTP_X_FORWARDED_FOR");
 		}
-		if ( ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip) ) {
+		if (ip == null || ip.isEmpty() || AppConstant.Security.UNKNOWN.equalsIgnoreCase(ip)) {
 			ip = request.getRemoteAddr();
 		}
 
-		// X-Forwarded-For can contain multiple IPs separated by commas (e.g., "client, proxy1, proxy2")
+		// X-Forwarded-For can contain multiple IPs separated by commas (e.g., "client,
+		// proxy1, proxy2")
 		// We only want the first IP, which is the original client
-		if ( ip != null && ip.contains(",") ) {
+		if (ip != null && ip.contains(",")) {
 			ip = ip.split(",")[0].trim();
 		}
 
