@@ -64,7 +64,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "400", description = "Validation failed", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< TeamPublicResponse > registerTeam (
 		@Valid @RequestBody TeamRequest request,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(teamService.registerTeam(request, user));
 	}
 
@@ -114,7 +115,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "400", description = "Validation failed", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< TeamPublicResponse > > registerForCombo (
 		@Valid @RequestBody EventComboTeamRequest request,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.status(HttpStatus.CREATED)
 			.body(teamService.registerTeamForEventCombo(request, user));
 	}
@@ -140,7 +142,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "403", description = "Unauthorized access to team", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< TeamPublicResponse > getTeamByTid (
 		@Parameter ( description = "Team ID", example = "TD26-582-AE" ) @PathVariable String tid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getTeamByTid(tid, user));
 	}
 
@@ -169,7 +172,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "404", description = "Team not found", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< TeamAdminResponse > getAdminTeamByTid (
 		@Parameter ( description = "Team ID", example = "TD26-582-AE" ) @PathVariable String tid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getAdminTeamByTid(tid, user));
 	}
 
@@ -186,7 +190,8 @@ public class TeamController {
 		}""" ) ) )
 	public ResponseEntity< TeamAdminResponse > updatePaymentStatus (
 		@Parameter ( description = "Team ID", example = "TD26-582-AE" ) @PathVariable String tid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.updatePaymentStatus(tid, user));
 	}
 
@@ -204,7 +209,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "400", description = "Team has not paid", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< TeamAdminResponse > updatePlayedStatus (
 		@Parameter ( description = "Team ID", example = "TD26-582-AE" ) @PathVariable String tid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.updatePlayedStatus(tid, user));
 	}
 
@@ -222,7 +228,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "400", description = "Team has not played", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< TeamAdminResponse > updateQualifiedStatus (
 		@Parameter ( description = "Team ID", example = "TD26-582-AE" ) @PathVariable String tid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.updateQualifiedStatus(tid, user));
 	}
 
@@ -241,7 +248,8 @@ public class TeamController {
 	public ResponseEntity< TeamAdminResponse > updatePosition (
 		@Parameter ( description = "Team ID", example = "TD26-582-AE" ) @PathVariable String tid,
 		@Parameter ( description = "Winning position", example = "FIRST" ) @RequestParam ( name = "position" ) Position position,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.updatePosition(tid, position, user));
 	}
 
@@ -259,7 +267,8 @@ public class TeamController {
 		]""" ) ) )
 	public ResponseEntity< List< TeamAdminResponse > > getTeamsByEvent (
 		@Parameter ( description = "Event ID", example = "4" ) @PathVariable Long eventId,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getTeamsByEvent(eventId, user));
 	}
 
@@ -278,7 +287,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "403", description = "Unauthorized access to GID", content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	public ResponseEntity< List< TeamPublicResponse > > getTeamsByGid (
 		@Parameter ( description = "General ID", example = "PD-8374-AZ" ) @PathVariable String gid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getTeamsByGid(gid, user));
 	}
 
@@ -289,7 +299,8 @@ public class TeamController {
 	@ApiResponse ( responseCode = "200", description = "Successfully retrieved admin teams", content = @Content ( array = @ArraySchema ( schema = @Schema ( implementation = TeamAdminResponse.class ) ) ) )
 	public ResponseEntity< List< TeamAdminResponse > > getTeamsByGidAdmin (
 		@Parameter ( description = "General ID", example = "PD-8374-AZ" ) @PathVariable String gid,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getAdminTeamsByGid(gid, user));
 	}
 
@@ -318,7 +329,8 @@ public class TeamController {
 		  }
 		]""" ) ) )
 	public ResponseEntity< List< UserRegisteredTeamsPublicResponse > > getTeamsByUserEmail (
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getTeamsByUser(user));
 	}
 
@@ -353,7 +365,8 @@ public class TeamController {
 		]""" ) ) )
 	public ResponseEntity< List< UserRegisteredTeamsAdminResponse > > getAdminTeamsByUserEmail (
 		@Parameter ( description = "User's email", example = "user@example.com" ) @PathVariable String email,
-		@Parameter ( hidden = true ) @AuthenticationPrincipal User user ) {
+		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
+	) {
 		return ResponseEntity.ok(teamService.getAdminTeamsByUserEmail(email, user));
 	}
 }

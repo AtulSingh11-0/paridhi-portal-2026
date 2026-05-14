@@ -43,12 +43,13 @@ services:
 
     app:
         image: ${DOCKER_USERNAME}/paridhi-portal:staging
+#        image: local/paridhi-portal:production
         # Removed container_name so Docker Compose can append indices for replicas
         restart: unless-stopped
         logging:
             driver: loki
             options:
-                loki-url: http://loki:3100/loki/api/v1/push
+                loki-url: "http://172.17.0.1:3100/loki/api/v1/push"
                 loki-external-labels: "service=paridhi-portal,environment=prod,container_name={{.Name}}"
         stop_grace_period: 45s
         depends_on:
@@ -117,6 +118,8 @@ services:
         container_name: paridhi-loki-prod
         restart: unless-stopped
         command: -config.file=/etc/loki/local-config.yaml
+        ports:
+            -   "127.0.0.1:3100:3100"
         volumes:
             - ./loki-config.yaml:/etc/loki/local-config.yaml
             - loki_data:/loki
