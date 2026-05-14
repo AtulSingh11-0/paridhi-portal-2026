@@ -46,11 +46,11 @@ services:
 #        image: local/paridhi-portal:production
         # Removed container_name so Docker Compose can append indices for replicas
         restart: unless-stopped
-        logging:
-            driver: loki
-            options:
-                loki-url: "http://172.17.0.1:3100/loki/api/v1/push"
-                loki-external-labels: "service=paridhi-portal,environment=prod,container_name={{.Name}}"
+#        logging:
+#            driver: loki
+#            options:
+#                loki-url: "http://172.17.0.1:3100/loki/api/v1/push"
+#                loki-external-labels: "service=paridhi-portal,environment=prod,container_name={{.Name}}"
         stop_grace_period: 45s
         depends_on:
             mysql:
@@ -94,6 +94,20 @@ services:
         tmpfs:
             - /tmp/spring:size=512M,mode=1777
             - /var/log/spring:size=256M,mode=1777
+
+    promtail:
+        image: grafana/promtail:latest
+        container_name: paridhi-promtail-prod
+        restart: unless-stopped
+        command: -config.file=/etc/promtail/config.yml
+        volumes:
+            - ./promtail-config.yml:/etc/promtail/config.yml
+            - /var/lib/docker/containers:/var/lib/docker/containers:ro
+            - /var/run/docker.sock:/var/run/docker.sock
+        networks:
+            - paridhi-network
+        security_opt:
+            - no-new-privileges:true
 
     prometheus:
         image: prom/prometheus:latest
