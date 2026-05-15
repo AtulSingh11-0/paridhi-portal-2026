@@ -29,6 +29,7 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 	// only paths starting with these strings will be accessible in Production.
 	private static final List< String > LIVE_ENDPOINTS = List.of(
 		"/api/auth",
+		"/api/admin",
 		"/api/mrd",
 		"/api/profiles",
 		"/api/events",
