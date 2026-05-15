@@ -42,7 +42,7 @@ services:
             - no-new-privileges:true
 
     app:
-        image: ${DOCKER_USERNAME}/paridhi-portal:staging
+        image: ${DOCKER_USERNAME}/paridhi-portal:prod
 #        image: local/paridhi-portal:production
         # Removed container_name so Docker Compose can append indices for replicas
         restart: unless-stopped
