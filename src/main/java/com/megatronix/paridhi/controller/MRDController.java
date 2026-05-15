@@ -1,6 +1,7 @@
 package com.megatronix.paridhi.controller;
 
 import com.megatronix.paridhi.dto.request.AdminMRDRequest;
+import com.megatronix.paridhi.dto.response.AdminMRDResponse;
 import com.megatronix.paridhi.dto.response.ErrorResponse;
 import com.megatronix.paridhi.dto.response.MRDResponse;
 import com.megatronix.paridhi.model.User;
@@ -83,7 +84,7 @@ public class MRDController {
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
 	@ApiResponse ( responseCode = "403", description = "Insufficient permissions",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< MRDResponse > registerMRDByAdmin (
+	public ResponseEntity< AdminMRDResponse > registerMRDByAdmin (
 		@Valid @RequestBody AdminMRDRequest request,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User adminUser
 	) {
@@ -111,7 +112,7 @@ public class MRDController {
 				    "gid": "PD26-0001-AB"
 				  }
 				]""" ) ) )
-	public ResponseEntity< List< MRDResponse > > getUserMRDs (
+	public ResponseEntity< List< AdminMRDResponse > > getUserMRDs (
 		@Parameter ( description = "Email of the user", example = "user@example.com" ) @PathVariable String email,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
 	) {
@@ -154,7 +155,7 @@ public class MRDController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "404", description = "MRD not found",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< MRDResponse > getMRDbyGID (
+	public ResponseEntity< AdminMRDResponse > getMRDbyGID (
 		@Parameter ( description = "General ID of the MRD", example = "PD-2026-0001" ) @PathVariable String gid,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
 	) {
@@ -176,7 +177,7 @@ public class MRDController {
 				}""" ) ) )
 	@ApiResponse ( responseCode = "404", description = "MRD not found",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< MRDResponse > updatePaymentStatus (
+	public ResponseEntity< AdminMRDResponse > updatePaymentStatus (
 		@Parameter ( description = "Global ID of the MRD", example = "PD-2026-0001" ) @PathVariable String gid,
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
 	) {
@@ -203,7 +204,7 @@ public class MRDController {
 				]""" ) ) )
 	@ApiResponse ( responseCode = "403", description = "Insufficient permissions — Super Admin required",
 		content = @Content ( schema = @Schema ( implementation = ErrorResponse.class ) ) )
-	public ResponseEntity< List< MRDResponse > > getAllMRDs (
+	public ResponseEntity< List< AdminMRDResponse > > getAllMRDs (
 		@Parameter ( hidden = true ) @AuthenticationPrincipal User user
 	) {
 		return ResponseEntity.ok(mrdService.getAllMRDs(user));

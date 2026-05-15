@@ -41,7 +41,8 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 
 	public EndpointVisibilityFilter (
 		ObjectMapper objectMapper,
-		Environment environment ) {
+		Environment environment
+	) {
 		this.objectMapper = objectMapper;
 		this.environment = environment;
 	}
@@ -50,7 +51,8 @@ public class EndpointVisibilityFilter extends OncePerRequestFilter {
 	protected void doFilterInternal (
 		@NonNull HttpServletRequest request,
 		@NonNull HttpServletResponse response,
-		@NonNull FilterChain filterChain ) throws ServletException, IOException {
+		@NonNull FilterChain filterChain
+	) throws ServletException, IOException {
 		String[] activeProfiles = environment.getActiveProfiles();
 		// step-1: environment bypass
 		if ( Arrays.asList(activeProfiles).contains("dev") ||

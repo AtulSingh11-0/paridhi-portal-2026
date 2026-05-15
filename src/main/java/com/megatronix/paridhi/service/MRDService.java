@@ -2,6 +2,7 @@ package com.megatronix.paridhi.service;
 
 import com.megatronix.paridhi.constant.AppConstant;
 import com.megatronix.paridhi.dto.request.AdminMRDRequest;
+import com.megatronix.paridhi.dto.response.AdminMRDResponse;
 import com.megatronix.paridhi.dto.response.MRDResponse;
 import com.megatronix.paridhi.exception.*;
 import com.megatronix.paridhi.model.MRD;
@@ -99,7 +100,7 @@ public class MRDService {
 	}
 
 	@Transactional
-	public MRDResponse performUserMRDByAdmin ( AdminMRDRequest request, User adminUser ) {
+	public AdminMRDResponse performUserMRDByAdmin ( AdminMRDRequest request, User adminUser ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Admin MRD registration request for email: {}", request.email());
 		}
@@ -116,7 +117,7 @@ public class MRDService {
 			logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, adminUser,
 				format(MRD_REGISTERED_BY_ADMIN, existingUser.getEmail(), savedMRD.getGid()));
 
-			return from(savedMRD.getGid());
+			return AdminMRDResponse.from(savedMRD);
 		}
 
 		// step-2b: user doesn't exist — create a new account and then register MRD
@@ -127,7 +128,7 @@ public class MRDService {
 		logOperation(log, MRD_REGISTER_BY_ADMIN, AppConstant.Service.MRD, adminUser,
 			format(MRD_REGISTERED_BY_ADMIN, newUser.getEmail(), savedMRD.getGid()));
 
-		return from(savedMRD.getGid());
+		return AdminMRDResponse.from(savedMRD);
 	}
 
 	/*
@@ -135,7 +136,7 @@ public class MRDService {
 	 */
 
 	@Transactional
-	public MRDResponse updatePaymentStatus ( String gid, User user ) {
+	public AdminMRDResponse updatePaymentStatus ( String gid, User user ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Received request to update payment status for GID: {}", gid);
 		}
@@ -158,11 +159,11 @@ public class MRDService {
 		logOperation(log, MRD_PAYMENT_UPDATE, AppConstant.Service.MRD, user,
 			format(MRD_PAYMENT_UPDATED, gid, updatedMRD.isHasPaid(), user.getEmail(), user.getUserId()));
 
-		return from(updatedMRD.getGid());
+		return AdminMRDResponse.from(updatedMRD);
 	}
 
 	@Transactional ( readOnly = true )
-	public List< MRDResponse > getUserMRDs ( String email, User user ) {
+	public List< AdminMRDResponse > getUserMRDs ( String email, User user ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Fetching MRDs for email: {} by user: {} (role: {})", email, user.getEmail(), user.getRole());
 		}
@@ -181,7 +182,7 @@ public class MRDService {
 			format(MRDS_FETCHED, mrds.size(), email, user.getEmail(), user.getUserId()));
 
 		return mrds.stream()
-			.map(mrd -> from(mrd.getGid()))
+			.map(AdminMRDResponse::from)
 			.toList();
 	}
 
@@ -214,7 +215,7 @@ public class MRDService {
 	}
 
 	@Transactional ( readOnly = true )
-	public MRDResponse getMRDbyGID ( String gid, User user ) {
+	public AdminMRDResponse getMRDbyGID ( String gid, User user ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Fetching MRD with GID: {} by user: {}", gid, user.getEmail());
 		}
@@ -233,11 +234,11 @@ public class MRDService {
 		logOperation(log, READ, AppConstant.Service.MRD, user,
 			format(MRD_FETCHED, gid, user.getEmail(), user.getUserId()));
 
-		return from(mrd.getGid());
+		return AdminMRDResponse.from(mrd);
 	}
 
 	@Transactional ( readOnly = true )
-	public List< MRDResponse > getAllMRDs ( User user ) {
+	public List< AdminMRDResponse > getAllMRDs ( User user ) {
 		if ( log.isDebugEnabled() ) {
 			log.debug("Fetching all MRDs by user: {} (role: {})", user.getEmail(), user.getRole());
 		}
@@ -253,7 +254,7 @@ public class MRDService {
 			format(MRDS_ALL_FETCHED, mrds.size(), user.getEmail(), user.getUserId()));
 
 		return mrds.stream()
-			.map(mrd -> from(mrd.getGid()))
+			.map(AdminMRDResponse::from)
 			.toList();
 	}
 
