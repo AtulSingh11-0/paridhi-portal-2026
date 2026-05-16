@@ -37,7 +37,7 @@ public record TeamAdminResponse(
 						team.getContacts().stream()
 								.map(ContactDto::fromContact)
 								.toList())
-				.gidList(team.getGidList())
+				.gidList(new java.util.ArrayList<>(team.getGidList()))
 				.hasPaid(team.isHasPaid())
 				.hasPlayed(team.isHasPlayed())
 				.hasQualified(team.isHasQualified())
