@@ -303,6 +303,11 @@ public class TeamService {
 		// step-2: fetch team
 		var team = fetchTeamSafely(tid, null, user);
 
+		// step-3: force initialization of all lazy collections/associations
+		org.hibernate.Hibernate.initialize(team.getGidList());
+		org.hibernate.Hibernate.initialize(team.getContacts());
+		org.hibernate.Hibernate.initialize(team.getEvent());
+
 		logOperation(log, READ, TEAM, user, format(TEAM_FETCHED, tid, user.getEmail(), user.getUserId()));
 
 		return TeamAdminResponse.fromTeam(team);

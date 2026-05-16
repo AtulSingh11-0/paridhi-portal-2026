@@ -46,17 +46,22 @@ public record TeamPublicResponse(
 	boolean hasQualified
 ) {
 	public static TeamPublicResponse fromTeam ( Team team ) {
+		if ( team == null ) return null;
+
+		var event = team.getEvent();
+
 		return TeamPublicResponse.builder()
 			.id(team.getTeamId())
 			.teamName(team.getTeamName())
 			.tid(team.getTid())
-			.eventId(team.getEvent().getEventId())
-			.eventName(team.getEvent().getEventName())
-			.contacts(
+			.eventId(event != null ? event.getEventId() : null)
+			.eventName(event != null ? event.getEventName() : "Unknown Event")
+			.contacts(team.getContacts() != null ?
 				team.getContacts().stream()
 					.map(ContactDto::fromContact)
-					.toList())
-			.gidList(new java.util.ArrayList<>(team.getGidList()))
+					.toList() : java.util.Collections.emptyList())
+			.gidList(team.getGidList() != null ?
+				new java.util.ArrayList<>(team.getGidList()) : java.util.Collections.emptyList())
 			.hasPaid(team.isHasPaid())
 			.hasPlayed(team.isHasPlayed())
 			.hasQualified(team.isHasQualified())

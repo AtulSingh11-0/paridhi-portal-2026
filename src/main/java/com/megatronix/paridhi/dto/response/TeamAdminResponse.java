@@ -27,17 +27,22 @@ public record TeamAdminResponse(
 		@Schema(description = "Username of the admin who created the team", example = "john@doe.com") String createdByUsername,
 		@Schema(description = "Username of the admin who last updated the team", example = "john@doe.com") String updatedByUsername) {
 	public static TeamAdminResponse fromTeam(Team team) {
+		if (team == null) return null;
+
+		var event = team.getEvent();
+		
 		return TeamAdminResponse.builder()
 				.id(team.getTeamId())
 				.teamName(team.getTeamName())
 				.tid(team.getTid())
-				.eventId(team.getEvent().getEventId())
-				.eventName(team.getEvent().getEventName())
-				.contacts(
+				.eventId(event != null ? event.getEventId() : null)
+				.eventName(event != null ? event.getEventName() : "Unknown Event")
+				.contacts(team.getContacts() != null ? 
 						team.getContacts().stream()
 								.map(ContactDto::fromContact)
-								.toList())
-				.gidList(new java.util.ArrayList<>(team.getGidList()))
+								.toList() : java.util.Collections.emptyList())
+				.gidList(team.getGidList() != null ? 
+						new java.util.ArrayList<>(team.getGidList()) : java.util.Collections.emptyList())
 				.hasPaid(team.isHasPaid())
 				.hasPlayed(team.isHasPlayed())
 				.hasQualified(team.isHasQualified())
