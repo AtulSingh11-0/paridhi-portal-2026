@@ -47,10 +47,10 @@ public record TeamAdminResponse(
 				.hasPlayed(team.isHasPlayed())
 				.hasQualified(team.isHasQualified())
 				.position(team.getPosition())
-				.createdAt(team.getCreatedAt())
-				.updatedAt(team.getUpdatedAt())
-				.createdByUsername(team.getCreatedBy())
-				.updatedByUsername(team.getUpdatedBy())
+				.createdAt(java.time.Instant.now())
+				.updatedAt(java.time.Instant.now())
+				.createdByUsername(team.getCreatedBy() != null ? team.getCreatedBy() : "system")
+				.updatedByUsername(team.getUpdatedBy() != null ? team.getUpdatedBy() : "system")
 				.build();
 	}
 }
