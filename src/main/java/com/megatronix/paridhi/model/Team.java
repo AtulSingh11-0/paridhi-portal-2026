@@ -47,7 +47,7 @@ public class Team extends Auditable {
 	)
 	@Column ( name = "gids" )
 	@Builder.Default
-	private List< String > gidList = new ArrayList<>();
+	private java.util.Set< String > gidList = new java.util.HashSet<>();
 
 	@Builder.Default
 	@Column ( name = "has_paid", nullable = false )

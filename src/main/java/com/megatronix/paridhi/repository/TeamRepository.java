@@ -15,17 +15,17 @@ import java.util.Optional;
 public interface TeamRepository extends JpaRepository< Team, Long > {
 	List< Team > findByEvent ( Event event );
 
-	@EntityGraph ( attributePaths = {"contacts"} )
+	@EntityGraph ( attributePaths = {"contacts", "gidList", "event"} )
 	@Query ( "SELECT DISTINCT t FROM Team t JOIN t.gidList gid WHERE gid IN :gidList" )
-	List< Team > findByGidListWithContacts ( @Param ( "gidList" ) List< String > gidList );
+	List< Team > findByGidListWithContacts ( @Param ( "gidList" ) java.util.Collection< String > gidList );
 
 	@Query( "SELECT DISTINCT t FROM Team t JOIN t.gidList gid WHERE gid IN :gidList" )
-	List< Team> findByGidList ( List< String> gidList );
+	List< Team> findByGidList ( java.util.Collection< String> gidList );
 
-	@EntityGraph ( attributePaths = {"contacts"} )
+	@EntityGraph ( attributePaths = {"contacts", "gidList", "event"} )
 	Optional< Team > findByTid ( String tid );
 
-	@EntityGraph ( attributePaths = {"contacts"} )
+	@EntityGraph ( attributePaths = {"contacts", "gidList", "event"} )
 	@Query ( "SELECT t FROM Team t WHERE t.event = :event" )
 	List< Team > findByEventWithContacts ( @Param ( "event" ) Event event );
 

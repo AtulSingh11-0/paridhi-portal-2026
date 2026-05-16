@@ -486,7 +486,7 @@ public class TeamService {
 			.tid(generateTID())
 			.event(event)
 			.contacts(contactList)
-			.gidList(gidList)
+			.gidList(new java.util.HashSet<>(gidList))
 			.build();
 
 		Team savedTeam = teamRepository.save(team);

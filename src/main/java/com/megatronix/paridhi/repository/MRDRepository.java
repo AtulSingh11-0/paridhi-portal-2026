@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface MRDRepository extends JpaRepository< MRD, Long > {
@@ -29,7 +30,7 @@ public interface MRDRepository extends JpaRepository< MRD, Long > {
 	boolean existsByGidAndHasPaidTrue ( String gid );
 
 	@Query ( "SELECT DISTINCT m.user.email FROM MRD m WHERE m.gid IN :gidList" )
-	List< String > findUserEmailListByGidList ( @Param ( "gidList" ) List< String > gidList );
+	List< String > findUserEmailListByGidList ( @Param ( "gidList" ) Set< String > gidList );
 
 	@Query ( "SELECT m.gid FROM MRD m WHERE m.user.email = :email" )
 	List< String > findGidListByUserEmail ( @Param ( "email" ) String email );
